@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>♡ コンプチェッカー ♡ v2.3 Google同期</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#fff7fc;color:#4a3b45}
+header{background:linear-gradient(135deg,#ff9dcc,#c9a7ff);color:#fff;text-align:center;padding:24px 16px;border-radius:0 0 24px 24px}
+header h1{margin:0;font-size:28px}
+header p{margin:6px 0 0;font-size:14px}
+.container{max-width:700px;margin:auto;padding:16px}
+.set-selector-wrap{max-width:700px;margin:14px auto 4px;padding:0 16px}
+.set-selector-wrap label{display:block;font-size:12px;font-weight:700;color:#8a7180;margin:0 0 6px 4px}
+.set-selector{width:100%;appearance:none;-webkit-appearance:none;border:2px solid #f0dce8;border-radius:16px;background:#fff;color:#4a3b45;font-size:18px;font-weight:700;padding:14px 46px 14px 16px;box-shadow:0 3px 12px rgba(0,0,0,.08);background-image:linear-gradient(45deg,transparent 50%,#8d7181 50%),linear-gradient(135deg,#8d7181 50%,transparent 50%);background-position:calc(100% - 22px) 20px,calc(100% - 15px) 20px;background-size:7px 7px,7px 7px;background-repeat:no-repeat}
+.set-selector:focus{outline:0;border-color:#ff9dcc;box-shadow:0 0 0 3px rgba(255,157,204,.18)}
+.progress-box{background:#fff;border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 3px 12px rgba(0,0,0,.08);text-align:center}
+.progress-text{font-size:28px;font-weight:bold}
+.progress-bar{height:14px;background:#eee;border-radius:20px;overflow:hidden;margin-top:10px}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#ff8fc7,#b99aff);transition:width .3s}
+.controls{display:flex;gap:8px;margin-bottom:12px}
+.controls button{flex:1;border:0;border-radius:12px;padding:11px 4px;background:#fff;color:#6b5965;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.controls button.active{background:#ff9dcc;color:#fff}
+.search{width:100%;padding:13px 15px;border:2px solid #f0dce8;border-radius:14px;font-size:16px;margin-bottom:12px;outline:0}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:#fff;border-radius:16px;padding:10px;box-shadow:0 3px 10px rgba(0,0,0,.08);position:relative}
+.card-image{width:100%;aspect-ratio:3/4;border-radius:10px;background:linear-gradient(135deg,#f3d8ff,#ffd9ed);display:flex;align-items:center;justify-content:center;overflow:hidden;color:#987c91;font-size:13px;text-align:center}
+.card-image img{width:100%;height:100%;object-fit:contain;display:block}
+.card-name{font-weight:bold;margin-top:8px;font-size:14px}
+.empty{text-align:center;padding:40px 10px;color:#999}
+.actions{display:flex;gap:8px;margin-top:16px}
+.actions button,.reset{flex:1;padding:12px;border:0;border-radius:12px;font-size:14px}
+.actions button:first-child{background:#ff9dcc;color:#fff}
+.actions button:last-child{background:#c9a7ff;color:#fff}
+.reset{width:100%;margin-top:10px;background:#eee;color:#777}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal.open{display:flex}
+.sheet{background:#fff;border-radius:20px;padding:20px;width:min(420px,100%);box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.sheet h2{margin:0 0 12px}
+.choice{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.choice button{flex:1;min-width:30%;padding:12px;border:2px solid #eee;border-radius:12px;background:#fff}
+.choice button.selected{border-color:#ff9dcc;background:#fff0f7}
+.qty{width:100%;padding:12px;border:2px solid #eee;border-radius:12px;font-size:18px}
+.sheet-actions{display:flex;gap:8px;margin-top:16px}
+.sheet-actions button{flex:1;padding:12px;border:0;border-radius:12px}
+.save{background:#ff9dcc;color:#fff}
+.cancel{background:#eee}
+.status-button{width:100%;margin-top:9px;padding:10px 6px;border:2px solid #eee;border-radius:12px;background:#f7f7f7;color:#777;font-size:13px;font-weight:600;cursor:pointer}
+.status-button.want{border-color:#ffb6d8;background:#fff0f7;color:#d34d91}
+.status-button.have{border-color:#c9b8ff;background:#f4f0ff;color:#7157b5}
+.status-button.none{border-color:#e5e5e5;background:#f7f7f7;color:#777}
+.list-preview{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:30;overflow:auto;padding:20px 12px}
+.preview-sheet{max-width:700px;margin:20px auto;background:#fff;border-radius:18px;padding:14px}
+.preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:18px}
+.preview-head button{border:0;background:#eee;border-radius:10px;padding:8px 12px}
+.preview-note{font-size:13px;color:#777;margin:10px 0}
+.preview-body{text-align:center}
+.preview-body img{width:100%;height:auto;display:block;border-radius:10px}
+.preview-actions{display:flex;gap:8px;margin-top:12px}
+.preview-actions button{flex:1;border:0;border-radius:12px;padding:12px;font-size:14px}.page-btn{border:0;border-radius:10px;padding:8px 12px;background:#eee;color:#555}.page-btn.selected{background:#ff9dcc;color:#fff}
+.preview-save{background:#ff9dcc;color:#fff}
+.preview-close{background:#eee;color:#555}
+.loading{padding:40px;color:#777}
+.auth-box{max-width:700px;margin:12px auto 0;padding:0 16px}
+.auth-panel{background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 3px 12px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.auth-info{font-size:13px;color:#6b5965;min-width:0}
+.auth-info strong{display:block;color:#4a3b45;font-size:14px}
+.auth-button{border:0;border-radius:12px;padding:11px 14px;background:#fff;color:#5b4a56;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.auth-button.google{background:#4285f4;color:#fff}
+.auth-status{font-size:12px;color:#8a7180;margin-top:5px}
+.auth-status.ok{color:#5c9b74}
+.auth-status.error{color:#c45c6e}
+@media(max-width:420px){.cards{gap:9px}.card{padding:8px}.controls button{font-size:13px}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>♡ コンプチェッカー ♡</h1>
+<p id="setSubtitle">アイカツ！アンコール 全カード</p>
+</header>
+
+<div class="auth-box">
+<div class="auth-panel">
+<div class="auth-info"><strong id="authUser">Googleログインしていません</strong><div id="authStatus" class="auth-status">端末内に自動保存されています</div></div>
+<div id="authActions"><button class="auth-button google" type="button" onclick="loginWithGoogle()">🔵 Googleでログイン</button></div>
+</div>
+</div>
+
+<div class="set-selector-wrap">
+<label for="setSelector">弾を選択</label>
+<select id="setSelector" class="set-selector" onchange="switchSet(this.value)">
+<option value="all">すべて</option>
+<option value="e1">1弾</option>
+<option value="e2">2弾</option>
+<option value="e3">3弾</option>
+<option value="e4">4弾</option>
+<option value="e5">5弾</option>
+<option value="e6">6弾</option>
+<option value="promo">プロモーション</option>
+</select>
+</div>
+
+<div class="container">
+<div class="progress-box">
+<div>コンプリート率</div>
+<div class="progress-text" id="percent">0%</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<div id="count">0 / 85 枚</div>
+</div>
+
+<input class="search" id="search" type="text" placeholder="🔍 カード番号を検索">
+
+<div class="controls">
+<button class="active" onclick="setFilter('all',this)">すべて</button>
+<button onclick="setFilter('have',this)">所持</button>
+<button onclick="setFilter('want',this)">欲しいもの</button>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="actions">
+<button onclick="makeList('want')">欲しいものリストを画像化</button>
+<button onclick="makeList('have')">所持カードリストを画像化</button>
+</div>
+
+<button class="reset" onclick="resetData()">データをリセット</button>
+</div>
+
+<div class="modal" id="modal">
+<div class="sheet">
+<h2 id="modalTitle">カード</h2>
+<div style="font-size:13px;color:#777;margin-bottom:6px">このカードの状態を選んでください</div>
+<div class="choice">
+<button id="noneBtn" onclick="chooseType('none')">未設定</button>
+<button id="wantBtn" onclick="chooseType('want')">♡ 欲しいもの</button>
+<button id="haveBtn" onclick="chooseType('have')">📦 所持数</button>
+</div>
+<input class="qty" id="qty" type="number" min="0" max="99" value="1" placeholder="所持数">
+<div class="sheet-actions">
+<button class="cancel" onclick="closeModal()">キャンセル</button>
+<button class="save" onclick="saveCard()">保存</button>
+</div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA_WV7U6GIdGZM72u5UyIT6dRg4_MndgfQ",
+  authDomain: "aikatsu-encore-comp-checker.firebaseapp.com",
+  projectId: "aikatsu-encore-comp-checker",
+  storageBucket: "aikatsu-encore-comp-checker.firebasestorage.app",
+  messagingSenderId: "986414492613",
+  appId: "1:986414492613:web:79179c456369d803e4f9ac"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+const googleProvider = new GoogleAuthProvider();
+window.firebaseUser = null;
+window.cloudSyncReady = false;
+let cloudSyncing = false;
+
+function setAuthUI(name, status, kind="") {
+  const userEl=document.getElementById("authUser");
+  const statusEl=document.getElementById("authStatus");
+  const actionsEl=document.getElementById("authActions");
+  if(userEl) userEl.textContent=name;
+  if(statusEl){ statusEl.textContent=status; statusEl.className="auth-status"+(kind?" "+kind:""); }
+  if(actionsEl){
+    actionsEl.innerHTML=window.firebaseUser
+      ? '<button class="auth-button" type="button" onclick="logoutGoogle()">ログアウト</button>'
+      : '<button class="auth-button google" type="button" onclick="loginWithGoogle()">🔵 Googleでログイン</button>';
+  }
+}
+
+function localSetIdFromKey(key){
+  return key==="aikatsu-encore-e1-data-v2"?"e1":key==="aikatsu-encore-e2-data-v1"?"e2":key==="aikatsu-encore-e3-data-v1"?"e3":key==="aikatsu-encore-e4-data-v1"?"e4":key==="aikatsu-encore-e5-data-v1"?"e5":key==="aikatsu-encore-e6-data-v1"?"e6":"promo";
+}
+
+function getLocalCloudData(){
+  const result={};
+  ["e1","e2","e3","e4","e5","e6","promo"].forEach(k=>{
+    const key={e1:"aikatsu-encore-e1-data-v2",e2:"aikatsu-encore-e2-data-v1",e3:"aikatsu-encore-e3-data-v1",e4:"aikatsu-encore-e4-data-v1",e5:"aikatsu-encore-e5-data-v1",e6:"aikatsu-encore-e6-data-v1",promo:"aikatsu-encore-promo-data-v1"}[k];
+    try{ result[k]=JSON.parse(localStorage.getItem(key)||"{}"); }catch(e){ result[k]={}; }
+  });
+  return result;
+}
+
+function hasAnyData(obj){
+  return Object.values(obj||{}).some(v=>v && typeof v==="object" && Object.keys(v).length>0);
+}
+
+function applyCloudData(setsData){
+  const data=setsData||{};
+  ["e1","e2","e3","e4","e5","e6","promo"].forEach(k=>{
+    const value=(data[k] && typeof data[k]==="object")?data[k]:{};
+    const key={e1:"aikatsu-encore-e1-data-v2",e2:"aikatsu-encore-e2-data-v1",e3:"aikatsu-encore-e3-data-v1",e4:"aikatsu-encore-e4-data-v1",e5:"aikatsu-encore-e5-data-v1",e6:"aikatsu-encore-e6-data-v1",promo:"aikatsu-encore-promo-data-v1"}[k];
+    localStorage.setItem(key,JSON.stringify(value));
+  });
+  if(window.loadSetData) window.loadSetData();
+  if(window.render) window.render();
+}
+
+async function syncToCloud(){
+  if(!window.firebaseUser || !window.cloudSyncReady || cloudSyncing) return;
+  cloudSyncing=true;
+  try{
+    const payload=getLocalCloudData();
+    await setDoc(doc(db,"users",window.firebaseUser.uid),{sets:payload,updatedAt:serverTimestamp()},{merge:true});
+    setAuthUI("Google: "+(window.firebaseUser.displayName||window.firebaseUser.email||"ログイン中"),"☁️ クラウドに同期済み","ok");
+  }catch(err){
+    console.error(err);
+    setAuthUI("Google: "+(window.firebaseUser.displayName||window.firebaseUser.email||"ログイン中"),"☁️ 同期エラー：Firestoreのルールを確認してください","error");
+  }finally{ cloudSyncing=false; }
+}
+
+window.syncToCloud=syncToCloud;
+
+async function syncFromCloud(){
+  if(!window.firebaseUser) return;
+  window.cloudSyncReady=false;
+  setAuthUI("Google: "+(window.firebaseUser.displayName||window.firebaseUser.email||"ログイン中"),"☁️ クラウドデータを確認中…");
+  try{
+    const ref=doc(db,"users",window.firebaseUser.uid);
+    const snap=await getDoc(ref);
+    const local=getLocalCloudData();
+    if(snap.exists() && snap.data().sets){
+      applyCloudData(snap.data().sets);
+      setAuthUI("Google: "+(window.firebaseUser.displayName||window.firebaseUser.email||"ログイン中"),"☁️ クラウドデータを読み込みました","ok");
+    }else if(hasAnyData(local)){
+      await setDoc(ref,{sets:local,updatedAt:serverTimestamp()},{merge:true});
+      setAuthUI("Google: "+(window.firebaseUser.displayName||window.firebaseUser.email||"ログイン中"),"☁️ この端末のデータをクラウドへ保存しました","ok");
+    }else{
+      await setDoc(ref,{sets:local,updatedAt:serverTimestamp()},{merge:true});
+      setAuthUI("Google: "+(window.firebaseUser.displayName||window.firebaseUser.email||"ログイン中"),"☁️ クラウド同期を開始しました","ok");
+    }
+    window.cloudSyncReady=true;
+  }catch(err){
+    console.error(err);
+    setAuthUI("Google: "+(window.firebaseUser.displayName||window.firebaseUser.email||"ログイン中"),"⚠️ 同期できませんでした。Firestoreのルール設定が必要です","error");
+  }
+}
+
+window.loginWithGoogle=async function(){
+  try{
+    setAuthUI("Googleログイン中…","Googleのログイン画面へ移動します…");
+    await signInWithRedirect(auth,googleProvider);
+  }catch(err){
+    console.error(err);
+    setAuthUI("Googleログインしていません","ログインできませんでした："+(err.code||err.message),"error");
+  }
+};
+
+window.logoutGoogle=async function(){
+  try{
+    await signOut(auth);
+    window.firebaseUser=null; window.cloudSyncReady=false;
+    setAuthUI("Googleログインしていません","端末内に自動保存されています");
+  }catch(err){ console.error(err); }
+};
+
+getRedirectResult(auth).catch(err=>{
+  if(err) console.error("Google redirect error:",err);
+});
+
+onAuthStateChanged(auth,user=>{
+  window.firebaseUser=user;
+  if(user){ syncFromCloud(); }
+  else { window.cloudSyncReady=false; setAuthUI("Googleログインしていません","端末内に自動保存されています"); }
+});
+</script>
+
+<script>
+const cardsE1=[
+{id:"E1-01",image:""},{id:"E1-02",image:""},{id:"E1-03",image:""},{id:"E1-04",image:""},
+{id:"E1-05",image:"E1-05.webp"},{id:"E1-06",image:"E1-06.webp"},{id:"E1-07",image:"E1-07.webp"},
+{id:"E1-08",image:"E1-08.webp"},{id:"E1-09",image:"E1-09.webp"},{id:"E1-10",image:"E1-10.webp"},
+{id:"E1-11",image:"E1-11.webp"},{id:"E1-12",image:"E1-12.webp"},{id:"E1-13",image:"E1-13.webp"},
+{id:"E1-14",image:"E1-14.webp"},{id:"E1-15",image:"E1-15.webp"},{id:"E1-16",image:"E1-16.webp"},
+{id:"E1-17",image:"E1-17.webp"},{id:"E1-18",image:"E1-18.webp"},{id:"E1-19",image:"E1-19.webp"},
+{id:"E1-20",image:"E1-20.webp"},{id:"E1-21",image:"E1-21.webp"},{id:"E1-22",image:"E1-22.webp"},
+{id:"E1-23",image:"E1-23.webp"},{id:"E1-24",image:"E1-24.webp"},{id:"E1-25",image:"E1-25.webp"},
+{id:"E1-26",image:"E1-26.webp"},{id:"E1-27",image:"E1-27.webp"},{id:"E1-28",image:"E1-28.webp"},
+{id:"E1-29",image:"E1-29.webp"},{id:"E1-30",image:""},{id:"E1-31",image:""},{id:"E1-32",image:""},
+{id:"E1-33",image:""},{id:"E1-34",image:""},{id:"E1-35",image:""},{id:"E1-36",image:""},
+{id:"E1-37",image:"E1-37.webp"},{id:"E1-38",image:"E1-38.webp"},{id:"E1-39",image:"E1-39.webp"},
+{id:"E1-40",image:"E1-40.webp"},{id:"E1-41",image:"E1-41.webp"},{id:"E1-42",image:"E1-42.webp"},
+{id:"E1-43",image:"E1-43.webp"},{id:"E1-44",image:"E1-44.webp"},{id:"E1-45",image:"E1-45.webp"},
+{id:"E1-46",image:"E1-46.webp"},{id:"E1-47",image:"E1-47.webp"},{id:"E1-48",image:"E1-48.webp"},
+{id:"E1-49",image:"E1-49.webp"},{id:"E1-50",image:""},{id:"E1-51",image:"E1-51.webp"},
+{id:"E1-52",image:"E1-52.webp"},{id:"E1-53",image:"E1-53.webp"},{id:"E1-54",image:"E1-54.webp"},
+{id:"E1-55",image:"E1-55.webp"},{id:"E1-56",image:"E1-56.webp"},{id:"E1-57",image:"E1-57.webp"},
+{id:"E1-58",image:"E1-58.webp"},{id:"E1-59",image:"E1-59.webp"},{id:"E1-60",image:"E1-60.webp"},
+{id:"E1-61",image:"E1-61.webp"},{id:"E1-62",image:"E1-62.webp"},{id:"E1-63",image:"E1-63.webp"},
+{id:"E1-64",image:"E1-64.webp"},{id:"E1-65",image:"E1-65.webp"},{id:"E1-66",image:"E1-66.webp"},
+{id:"E1-67",image:"E1-67.webp"},{id:"E1-68",image:"E1-68.webp"},{id:"E1-69",image:"E1-69.webp"},
+{id:"E1-70",image:"E1-70.webp"},{id:"E1-71",image:""},{id:"E1-72",image:""},{id:"E1-73",image:""},
+{id:"E1-74",image:""},{id:"E1-75",image:""},{id:"E1-76",image:""},{id:"E1-77",image:""},
+{id:"E1-78",image:""},{id:"E1-79",image:""},{id:"E1-80",image:""},{id:"E1-81",image:""},
+{id:"E1-82",image:""},{id:"E1-83",image:"E1-83.webp"},{id:"E1-84",image:"E1-84.webp"},
+{id:"E1-85",image:"E1-85.webp"}
+];
+
+const sets={
+all:{name:"すべて",subtitle:"アイカツ！アンコール 全カード",cards:[],storageKey:"",oldKey:null},
+e1:{name:"1弾",subtitle:"アイカツ！アンコール 第1弾",cards:cardsE1,storageKey:"aikatsu-encore-e1-data-v2",oldKey:"aikatsu-encore-e1-owned"},
+e2:{name:"2弾",subtitle:"アイカツ！アンコール 第2弾",cards:[],storageKey:"aikatsu-encore-e2-data-v1",oldKey:null},
+e3:{name:"3弾",subtitle:"アイカツ！アンコール 第3弾",cards:[],storageKey:"aikatsu-encore-e3-data-v1",oldKey:null},
+e4:{name:"4弾",subtitle:"アイカツ！アンコール 第4弾",cards:[],storageKey:"aikatsu-encore-e4-data-v1",oldKey:null},
+e5:{name:"5弾",subtitle:"アイカツ！アンコール 第5弾",cards:[],storageKey:"aikatsu-encore-e5-data-v1",oldKey:null},
+e6:{name:"6弾",subtitle:"アイカツ！アンコール 第6弾",cards:[],storageKey:"aikatsu-encore-e6-data-v1",oldKey:null},
+promo:{name:"プロモーション",subtitle:"アイカツ！アンコール プロモーション",cards:[],storageKey:"aikatsu-encore-promo-data-v1",oldKey:null}
+};
+
+let currentSetKey="all",currentSet=sets.all,cards=[...cardsE1],data={},filter="all",editingId="",editingType="none";
+
+function loadSetData(){
+if(currentSetKey==="all"){
+data={};
+["e1","e2","e3","e4","e5","e6","promo"].forEach(k=>{
+const d=JSON.parse(localStorage.getItem(sets[k].storageKey)||"{}");
+Object.assign(data,d);
+});
+return;
+}
+data=JSON.parse(localStorage.getItem(currentSet.storageKey)||"{}");
+if(Object.keys(data).length===0&&currentSet.oldKey){
+const oldOwned=JSON.parse(localStorage.getItem(currentSet.oldKey)||"[]");
+if(Array.isArray(oldOwned)&&oldOwned.length){
+oldOwned.forEach(id=>data[id]={type:"have",qty:1});
+localStorage.setItem(currentSet.storageKey,JSON.stringify(data));
+}
+}
+}
+
+function switchSet(key){
+if(!sets[key])return;
+currentSetKey=key;currentSet=sets[key];
+cards=key==="all"?[...cardsE1,...sets.e2.cards,...sets.e3.cards,...sets.e4.cards,...sets.e5.cards,...sets.e6.cards,...sets.promo.cards]:currentSet.cards;
+filter="all";
+document.getElementById("setSelector").value=key;
+document.getElementById("setSubtitle").textContent=currentSet.subtitle;
+document.title="♡ コンプチェッカー ♡ "+currentSet.name;
+document.querySelectorAll(".controls button").forEach((b,i)=>b.classList.toggle("active",i===0));
+loadSetData();render();
+}
+
+function saveData(){
+if(currentSetKey!=="all")localStorage.setItem(currentSet.storageKey,JSON.stringify(data));
+}
+
+function state(c){
+if(currentSetKey!=="all")return data[c.id]||{type:"none",qty:0};
+const key=c.id.startsWith("E1-")?"aikatsu-encore-e1-data-v2":
+c.id.startsWith("E2-")?"aikatsu-encore-e2-data-v1":
+c.id.startsWith("E3-")?"aikatsu-encore-e3-data-v1":
+c.id.startsWith("E4-")?"aikatsu-encore-e4-data-v1":
+c.id.startsWith("E5-")?"aikatsu-encore-e5-data-v1":
+c.id.startsWith("E6-")?"aikatsu-encore-e6-data-v1":"aikatsu-encore-promo-data-v1";
+const d=JSON.parse(localStorage.getItem(key)||"{}");
+return d[c.id]||{type:"none",qty:0};
+}
+
+function render(){
+const s=document.getElementById("search").value.toLowerCase(),area=document.getElementById("cards");
+const filtered=cards.filter(c=>{
+const d=state(c);
+return c.id.toLowerCase().includes(s)&&(filter==="all"||(filter==="want"&&d.type==="want")||(filter==="have"&&d.type==="have"&&d.qty>0));
+});
+area.innerHTML=cards.length&&filtered.length?filtered.map(c=>{
+const d=state(c);
+const label=d.type==="want"?"♡ 欲しいもの":d.type==="have"&&d.qty>0?`📦 所持数 ${d.qty}枚`:"未設定";
+const cls=d.type==="want"?"want":d.type==="have"&&d.qty>0?"have":"none";
+return `<div class="card">
+<button class="card-open" type="button" style="display:block;width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer" onclick="openModal('${c.id}')">
+<div class="card-image">${c.image?`<img src="${c.image}" alt="${c.id}">`:`<img src="junbi.webp.png" alt="準備中">`}</div>
+<div class="card-name">${c.id}</div>
+</button>
+<button class="status-button ${cls}" type="button" onclick="openModal('${c.id}')">${label}</button>
+</div>`;
+}).join(""):'<div class="empty">該当するカードがありません</div>';
+updateProgress();
+}
+
+function updateProgress(){
+const have=cards.filter(c=>state(c).type==="have"&&state(c).qty>0).length,total=cards.length;
+if(!total){
+document.getElementById("percent").textContent="準備中";
+document.getElementById("progress").style.width="0%";
+document.getElementById("count").textContent="カード登録後に使えます";
+return;
+}
+const p=Math.round(have/total*100);
+document.getElementById("percent").textContent=p+"%";
+document.getElementById("progress").style.width=p+"%";
+document.getElementById("count").textContent=have+" / "+total+" 枚";
+}
+
+function setFilter(t,b){
+filter=t;
+document.querySelectorAll(".controls button").forEach(x=>x.classList.remove("active"));
+b.classList.add("active");render();
+}
+
+function openModal(id){
+editingId=id;
+const d=state(cards.find(c=>c.id===id));
+editingType=d.type||"none";
+document.getElementById("modalTitle").textContent=id;
+document.getElementById("qty").value=d.qty||1;
+updateChoice();
+document.getElementById("modal").classList.add("open");
+}
+
+function closeModal(){
+document.getElementById("modal").classList.remove("open");
+}
+
+function chooseType(t){
+editingType=t;updateChoice();
+}
+
+function updateChoice(){
+["none","want","have"].forEach(t=>document.getElementById(t+"Btn").classList.toggle("selected",editingType===t));
+const q=document.getElementById("qty");
+q.style.display=editingType==="have"?"block":"none";
+q.disabled=editingType!=="have";
+}
+
+function saveCard(){
+const qty=Math.max(0,Math.min(99,Number(document.getElementById("qty").value)||0));
+if(currentSetKey==="all"){
+const prefix=editingId.split("-")[0];
+const key=prefix==="E1"?"aikatsu-encore-e1-data-v2":
+prefix==="E2"?"aikatsu-encore-e2-data-v1":
+prefix==="E3"?"aikatsu-encore-e3-data-v1":
+prefix==="E4"?"aikatsu-encore-e4-data-v1":
+prefix==="E5"?"aikatsu-encore-e5-data-v1":
+prefix==="E6"?"aikatsu-encore-e6-data-v1":"aikatsu-encore-promo-data-v1";
+const d=JSON.parse(localStorage.getItem(key)||"{}");
+d[editingId]=editingType==="have"?{type:"have",qty}:{type:editingType,qty:0};
+localStorage.setItem(key,JSON.stringify(d));
+}else{
+data[editingId]=editingType==="have"?{type:"have",qty}:{type:editingType,qty:0};
+saveData();
+}
+closeModal();render();
+if(window.firebaseUser&&window.cloudSyncReady&&window.syncToCloud)window.syncToCloud();
+}
+
+function resetData(){
+if(!confirm("この弾のデータをリセットしますか？"))return;
+if(currentSetKey==="all"){
+["e1","e2","e3","e4","e5","e6","promo"].forEach(k=>localStorage.removeItem(sets[k].storageKey));
+}else{
+localStorage.removeItem(currentSet.storageKey);
+}
+loadSetData();render();
+if(window.firebaseUser&&window.cloudSyncReady&&window.syncToCloud)window.syncToCloud();
+}
+
+/* ===== 画像リスト作成・保存 ===== */
+function getListCards(type){
+return cards.filter(c=>{
+const d=state(c);
+return type==="want"
+?d.type==="want"
+:d.type==="have"&&d.qty>0;
+});
+}
+
+function loadImage(src){
+return new Promise(resolve=>{
+if(!src){resolve(null);return;}
+const img=new Image();
+img.onload=()=>resolve(img);
+img.onerror=()=>resolve(null);
+img.src=src;
+});
+}
+
+async function makeList(type){
+const list=getListCards(type);
+if(!list.length){
+alert(type==="want"?"欲しいものがありません。":"所持カードがありません。");
+return;
+}
+
+const title=type==="want"?"欲しいものリスト":"所持カードリスト";
+const width=1600, cardW=180, cardH=260, gap=20, top=150, side=40;
+const cols=8, rows=5, perPage=cols*rows;
+const pageCount=Math.ceil(list.length/perPage);
+const images=[];
+
+for(let page=0;page<pageCount;page++){
+const pageCards=list.slice(page*perPage,(page+1)*perPage);
+const height=top+rows*(cardH+gap)+40;
+
+const canvas=document.createElement("canvas");
+canvas.width=width;
+canvas.height=height;
+const ctx=canvas.getContext("2d");
+
+ctx.fillStyle="#fff7fc";
+ctx.fillRect(0,0,width,height);
+
+ctx.fillStyle="#4a3b45";
+ctx.textAlign="center";
+ctx.font="bold 42px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+ctx.fillText("♡ コンプチェッカー ♡",width/2,58);
+
+ctx.font="bold 30px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+ctx.fillText(title,width/2,105);
+
+ctx.textAlign="left";
+ctx.font="18px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+ctx.fillStyle="#777";
+ctx.fillText(currentSet.name+"　"+list.length+"枚　"+(page+1)+"/"+pageCount+"ページ",side,135);
+
+for(let i=0;i<pageCards.length;i++){
+const c=pageCards[i],d=state(c);
+const col=i%cols,row=Math.floor(i/cols);
+const x=side+col*(cardW+gap),y=top+row*(cardH+gap);
+
+ctx.fillStyle="#fff";
+ctx.beginPath();
+ctx.roundRect(x,y,cardW,cardH,14);
+ctx.fill();
+
+ctx.strokeStyle="#ead8e5";
+ctx.lineWidth=2;
+ctx.stroke();
+
+const img=await loadImage(c.image||"junbi.webp.png");
+if(img){
+const pad=8,iw=cardW-pad*2,ih=cardH-48;
+const scale=Math.min(iw/img.naturalWidth,ih/img.naturalHeight);
+const dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;
+ctx.drawImage(img,x+(cardW-dw)/2,y+pad+(ih-dh)/2,dw,dh);
+}
+
+ctx.fillStyle="#4a3b45";
+ctx.textAlign="center";
+ctx.font="bold 18px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+ctx.fillText(c.id,x+cardW/2,y+cardH-16);
+
+if(type==="have"){
+ctx.font="bold 15px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+ctx.fillStyle="#7157b5";
+ctx.fillText("所持数 "+d.qty+"枚",x+cardW/2,y+cardH+20);
+}
+}
+
+images.push({
+dataUrl:canvas.toDataURL("image/png"),
+page:page+1
+});
+}
+
+showListPreview(images,title);
+}
+function showListPreview(images,title){
+const old=document.getElementById("listPreview");
+if(old)old.remove();
+
+const wrap=document.createElement("div");
+wrap.className="list-preview";
+wrap.id="listPreview";
+
+let pageButtons="";
+if(images.length>1){
+pageButtons=images.map((x,i)=>
+`<button type="button" class="page-btn ${i===0?"selected":""}" onclick="showListPage(${i})">${i+1}ページ</button>`
+).join("");
+}
+
+wrap.innerHTML=`
+<div class="preview-sheet">
+<div class="preview-head">
+<strong>${title}</strong>
+<button type="button" onclick="closeListPreview()">閉じる</button>
+</div>
+<div class="preview-note">横8枚 × 縦5枚。画像を長押しして「写真に保存」できます。</div>
+<div class="preview-body"><img id="generatedListImage" alt="${title}"></div>
+<div id="pageButtons" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${pageButtons}</div>
+<div class="preview-actions">
+<button class="preview-save" type="button" onclick="saveListImage()">画像を保存</button>
+<button class="preview-close" type="button" onclick="closeListPreview()">閉じる</button>
+</div>
+</div>`;
+
+document.body.appendChild(wrap);
+window.currentListImages=images;
+window.currentListPage=0;
+showListPage(0);
+}
+
+function showListPage(index){
+if(!window.currentListImages||!window.currentListImages[index])return;
+window.currentListPage=index;
+const img=document.getElementById("generatedListImage");
+if(img)img.src=window.currentListImages[index].dataUrl;
+
+document.querySelectorAll("#pageButtons .page-btn").forEach((b,i)=>{
+b.classList.toggle("selected",i===index);
+});
+}
+function saveListImage(){
+const images=window.currentListImages;
+const index=window.currentListPage||0;
+if(!images||!images[index])return;
+
+const a=document.createElement("a");
+a.href=images[index].dataUrl;
+a.download="コンプチェッカー_"+(currentSet.name||"リスト")+"_"+(index+1)+".png";
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+setTimeout(()=>{
+alert("保存画面が出ない場合は、表示された画像を長押しして「写真に保存」を選んでください。");
+},300);
+}
+function closeListPreview(){
+const p=document.getElementById("listPreview");
+if(p)p.remove();
+window.currentListDataUrl="";window.currentListImages=[];window.currentListPage=0;
+}
+
+document.getElementById("search").addEventListener("input",render);
+loadSetData();
+render();
+</script>
+</body>
+</html>
