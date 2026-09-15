@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>♡ コンプチェッカー ♡ v2.3 Google同期</title>
+<title>♡ コンプチェッカー ♡ v2.4 iPhone Safari対応</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#fff7fc;color:#4a3b45}
@@ -147,7 +147,7 @@ header p{margin:6px 0 0;font-size:14px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -250,11 +250,22 @@ async function syncFromCloud(){
 
 window.loginWithGoogle=async function(){
   try{
-    setAuthUI("Googleログイン中…","Googleのログイン画面へ移動します…");
-    await signInWithRedirect(auth,googleProvider);
+    setAuthUI("Googleログイン中…","Googleのログイン画面を開いています…");
+    // iPhone Safari / GitHub Pagesでは redirect 認証が
+    // Firebaseの認証補助ドメインへの第三者ストレージアクセス制限に
+    // 引っかかることがあるため、ユーザー操作から直接 popup 認証を行います。
+    const result = await signInWithPopup(auth,googleProvider);
+    if(result && result.user){
+      window.firebaseUser=result.user;
+      await syncFromCloud();
+    }
   }catch(err){
-    console.error(err);
-    setAuthUI("Googleログインしていません","ログインできませんでした："+(err.code||err.message),"error");
+    console.error("Google sign-in error:",err);
+    let message = "ログインできませんでした。もう一度お試しください。";
+    if(err && err.code === "auth/popup-closed-by-user") message = "Googleログイン画面が閉じられました。もう一度お試しください。";
+    if(err && err.code === "auth/popup-blocked") message = "ポップアップがブロックされました。Safariのポップアップ設定を確認してください。";
+    if(err && err.code === "auth/cancelled-popup-request") message = "Googleログインをもう一度お試しください。";
+    setAuthUI("Googleログインしていません",message,"error");
   }
 };
 
@@ -265,10 +276,6 @@ window.logoutGoogle=async function(){
     setAuthUI("Googleログインしていません","端末内に自動保存されています");
   }catch(err){ console.error(err); }
 };
-
-getRedirectResult(auth).catch(err=>{
-  if(err) console.error("Google redirect error:",err);
-});
 
 onAuthStateChanged(auth,user=>{
   window.firebaseUser=user;
