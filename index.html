@@ -80,19 +80,69 @@ header p{margin:6px 0 0;font-size:14px}
 .search:focus{border-color:#70baff;box-shadow:0 0 0 4px rgba(112,186,255,.14)}
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .card{
-  background:rgba(255,255,255,.96);border:2px solid #d7efff;border-radius:19px;
-  padding:10px;box-shadow:0 5px 14px rgba(65,125,185,.12);position:relative;
-  overflow:hidden
+  background:rgba(255,255,255,.98);
+  border:3px solid #79b9f5;
+  border-radius:22px;
+  padding:10px;
+  box-shadow:0 6px 16px rgba(65,125,185,.13);
+  position:relative;
+  overflow:hidden;
 }
-.card:before{content:"✦";position:absolute;right:7px;top:4px;color:#9bd5ff;font-size:13px;opacity:.8}
+.card:before{
+  content:"✦";
+  position:absolute;right:8px;top:4px;
+  color:#a9d9ff;font-size:14px;opacity:.9;z-index:2;
+}
+.card.have-card{border-color:#62aef2;box-shadow:0 6px 18px rgba(72,153,230,.18)}
 .card-image{
-  width:100%;aspect-ratio:3/4;border-radius:13px;
+  width:100%;aspect-ratio:3/4;border-radius:14px;
   background:linear-gradient(135deg,#e2f6ff,#eef0ff,#ffeaf6);
   border:1px solid #d4edff;display:flex;align-items:center;justify-content:center;
   overflow:hidden;color:#7090b0;font-size:13px;text-align:center
 }
 .card-image img{width:100%;height:100%;object-fit:contain;display:block}
-.card-name{font-weight:bold;margin-top:8px;font-size:14px;color:#466887}
+.card-name{
+  font-weight:800;margin-top:9px;font-size:15px;color:#3e5f83;
+  padding:0 2px;
+}
+.card-id-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.card-id{font-size:17px;font-weight:900;color:#385a80;letter-spacing:.02em}
+.card-name-text{font-size:14px;color:#5d7590;margin-top:3px;line-height:1.35}
+.card-status{
+  width:100%;margin-top:10px;padding:10px 8px;
+  border:2px solid #b9dcfa;border-radius:15px;
+  background:#f2f9ff;color:#5d82a8;font-size:14px;font-weight:800;
+  cursor:pointer;transition:.15s;
+}
+.card-status.have{
+  border-color:#55b0ec;
+  background:linear-gradient(135deg,#dff6ff,#eef7ff);
+  color:#3d91c8;
+}
+.card-actions{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:8px}
+.trade-control{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  min-width:0;border:2px solid #bfe9e5;border-radius:15px;
+  background:#effcfb;color:#35a9a1;padding:7px 5px;
+  font-size:14px;font-weight:800;
+}
+.trade-control button,.want-toggle{
+  border:0;cursor:pointer;font-weight:900;
+}
+.trade-control button{
+  width:28px;height:28px;border-radius:50%;
+  background:#fff;color:#35a9a1;font-size:20px;line-height:1;
+  box-shadow:0 2px 6px rgba(46,150,145,.12);
+}
+.trade-label{white-space:nowrap}
+.want-toggle{
+  min-width:58px;padding:7px 10px;border-radius:15px;
+  border:2px solid #e5cbe0;background:#fff9fd;color:#80658a;font-size:14px;
+}
+.want-toggle.selected{
+  border-color:#ff9fcf;background:#fff0f7;color:#d64f92;
+  box-shadow:0 3px 9px rgba(255,159,207,.14);
+}
 .empty{text-align:center;padding:40px 10px;color:#7d9ab7}
 .actions{display:flex;gap:8px;margin-top:16px}
 .actions button,.reset{flex:1;padding:12px;border:0;border-radius:15px;font-size:14px;font-weight:700}
@@ -144,8 +194,13 @@ header p{margin:6px 0 0;font-size:14px}
 .auth-status.error{color:#c45c6e}
 @media(max-width:420px){
   .cards{gap:9px}
-  .card{padding:8px;border-radius:17px}
-  .controls button{font-size:13px}
+  .card{padding:8px;border-radius:18px}
+  .card-id{font-size:15px}
+  .card-name-text{font-size:13px}
+  .card-actions{gap:6px}
+  .trade-control{gap:5px;font-size:13px}
+  .trade-control button{width:26px;height:26px;font-size:18px}
+  .want-toggle{min-width:55px;padding:7px 8px}
 }
 </style>
 </head>
@@ -443,29 +498,101 @@ const d=JSON.parse(localStorage.getItem(key)||"{}");
 return d[c.id]||{type:"none",qty:0};
 }
 
+function getCardStorage(c){
+if(currentSetKey!=="all")return {store:data,key:c.id};
+const key=c.id.startsWith("E1-")?"aikatsu-encore-e1-data-v2":
+c.id.startsWith("E2-")?"aikatsu-encore-e2-data-v1":
+c.id.startsWith("E3-")?"aikatsu-encore-e3-data-v1":
+c.id.startsWith("E4-")?"aikatsu-encore-e4-data-v1":
+c.id.startsWith("E5-")?"aikatsu-encore-e5-data-v1":
+c.id.startsWith("E6-")?"aikatsu-encore-e6-data-v1":"aikatsu-encore-promo-data-v1";
+return {store:JSON.parse(localStorage.getItem(key)||"{}"),key:c.id,storageKey:key};
+}
+
+function normalizedState(c){
+const d=state(c)||{};
+return {
+  type:d.type||"none",
+  qty:Number(d.qty)||0,
+  have:(d.type==="have" && (Number(d.qty)||0)>0) || d.have===true,
+  want:d.want===true || d.type==="want",
+  trade:Math.max(0,Number(d.trade)||0)
+};
+}
+
+function persistCard(c, patch){
+const s=getCardStorage(c);
+const old=s.store[s.key]||{};
+const next={...old,...patch};
+if(currentSetKey==="all"){
+localStorage.setItem(s.storageKey,JSON.stringify({...s.store,[s.key]:next}));
+}else{
+data[s.key]=next;
+saveData();
+}
+if(window.firebaseUser&&window.cloudSyncReady&&window.syncToCloud)window.syncToCloud();
+}
+
+function toggleOwned(id){
+const c=cards.find(x=>x.id===id); if(!c)return;
+const d=normalizedState(c);
+if(d.have){
+  persistCard(c,{type:"none",qty:0});
+}else{
+  persistCard(c,{type:"have",qty:1});
+}
+render();
+}
+
+function changeTrade(id,delta){
+const c=cards.find(x=>x.id===id); if(!c)return;
+const d=normalizedState(c);
+const next=Math.max(0,Math.min(99,d.trade+delta));
+persistCard(c,{trade:next});
+render();
+}
+
+function toggleWant(id){
+const c=cards.find(x=>x.id===id); if(!c)return;
+const d=normalizedState(c);
+persistCard(c,{want:!d.want});
+render();
+}
+
 function render(){
 const s=document.getElementById("search").value.toLowerCase(),area=document.getElementById("cards");
 const filtered=cards.filter(c=>{
-const d=state(c);
-return c.id.toLowerCase().includes(s)&&(filter==="all"||(filter==="want"&&d.type==="want")||(filter==="have"&&d.type==="have"&&d.qty>0));
+const d=normalizedState(c);
+return c.id.toLowerCase().includes(s)&&(filter==="all"||(filter==="want"&&d.want)||(filter==="have"&&d.have));
 });
 area.innerHTML=cards.length&&filtered.length?filtered.map(c=>{
-const d=state(c);
-const label=d.type==="want"?"♡ 欲しいもの":d.type==="have"&&d.qty>0?`📦 所持数 ${d.qty}枚`:"未設定";
-const cls=d.type==="want"?"want":d.type==="have"&&d.qty>0?"have":"none";
-return `<div class="card">
+const d=normalizedState(c);
+const name=c.name||c.cardName||"";
+const haveClass=d.have?" have-card":"";
+return `<div class="card${haveClass}">
 <button class="card-open" type="button" style="display:block;width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer" onclick="openModal('${c.id}')">
 <div class="card-image">${c.image?`<img src="${c.image}" alt="${c.id}">`:`<img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22600%22%20height%3D%22840%22%20viewBox%3D%220%200%20600%20840%22%3E%3Crect%20width%3D%22600%22%20height%3D%22840%22%20fill%3D%22%23f5f5f5%22/%3E%3Crect%20x%3D%2220%22%20y%3D%2220%22%20width%3D%22560%22%20height%3D%22800%22%20rx%3D%2224%22%20fill%3D%22white%22%20stroke%3D%22%23ddd%22%20stroke-width%3D%224%22/%3E%3Ctext%20x%3D%22300%22%20y%3D%22400%22%20text-anchor%3D%22middle%22%20font-size%3D%2264%22%20font-family%3D%22sans-serif%22%20fill%3D%22%23888%22%3E%E6%BA%96%E5%82%99%E4%B8%AD%3C/text%3E%3C/svg%3E" alt="準備中">`}</div>
-<div class="card-name">${c.id}</div>
+<div class="card-name">
+  <div class="card-id-row"><span class="card-id">${c.id}</span></div>
+  ${name?`<div class="card-name-text">${name}</div>`:""}
+</div>
 </button>
-<button class="status-button ${cls}" type="button" onclick="openModal('${c.id}')">${label}</button>
+<button class="card-status ${d.have?"have":""}" type="button" onclick="toggleOwned('${c.id}')">${d.have?"✓ 所持済":"♡ 未所持"}</button>
+<div class="card-actions">
+  <div class="trade-control">
+    <button type="button" aria-label="譲る数を減らす" onclick="changeTrade('${c.id}',-1)">−</button>
+    <span class="trade-label">譲 ${d.trade}</span>
+    <button type="button" aria-label="譲る数を増やす" onclick="changeTrade('${c.id}',1)">＋</button>
+  </div>
+  <button class="want-toggle ${d.want?"selected":""}" type="button" onclick="toggleWant('${c.id}')">${d.want?"求 ✓":"求"}</button>
+</div>
 </div>`;
 }).join(""):'<div class="empty">該当するカードがありません</div>';
 updateProgress();
 }
 
 function updateProgress(){
-const have=cards.filter(c=>state(c).type==="have"&&state(c).qty>0).length,total=cards.length;
+const have=cards.filter(c=>normalizedState(c).have).length,total=cards.length;
 if(!total){
 document.getElementById("percent").textContent="準備中";
 document.getElementById("progress").style.width="0%";
@@ -511,23 +638,17 @@ q.disabled=editingType!=="have";
 
 function saveCard(){
 const qty=Math.max(0,Math.min(99,Number(document.getElementById("qty").value)||0));
-if(currentSetKey==="all"){
-const prefix=editingId.split("-")[0];
-const key=prefix==="E1"?"aikatsu-encore-e1-data-v2":
-prefix==="E2"?"aikatsu-encore-e2-data-v1":
-prefix==="E3"?"aikatsu-encore-e3-data-v1":
-prefix==="E4"?"aikatsu-encore-e4-data-v1":
-prefix==="E5"?"aikatsu-encore-e5-data-v1":
-prefix==="E6"?"aikatsu-encore-e6-data-v1":"aikatsu-encore-promo-data-v1";
-const d=JSON.parse(localStorage.getItem(key)||"{}");
-d[editingId]=editingType==="have"?{type:"have",qty}:{type:editingType,qty:0};
-localStorage.setItem(key,JSON.stringify(d));
-}else{
-data[editingId]=editingType==="have"?{type:"have",qty}:{type:editingType,qty:0};
-saveData();
-}
+const c=cards.find(x=>x.id===editingId);
+if(!c)return;
+const old=normalizedState(c);
+const patch={
+  type:editingType==="have"?"have":(editingType==="want"?"want":"none"),
+  qty:editingType==="have"?qty:0,
+  want:old.want,
+  trade:old.trade
+};
+persistCard(c,patch);
 closeModal();render();
-if(window.firebaseUser&&window.cloudSyncReady&&window.syncToCloud)window.syncToCloud();
 }
 
 function resetData(){
@@ -546,8 +667,8 @@ function getListCards(type){
 return cards.filter(c=>{
 const d=state(c);
 return type==="want"
-?d.type==="want"
-:d.type==="have"&&d.qty>0;
+?normalizedState(c).want
+:normalizedState(c).have;
 });
 }
 
