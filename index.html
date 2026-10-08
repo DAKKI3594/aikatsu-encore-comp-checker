@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>♡ アイカツ！アンコール コンプチェッカー ♡</title>
+<title>アイカツアンコール! コンプチェック</title>
 <style>
 *{box-sizing:border-box}
 :root{
@@ -63,6 +63,7 @@ header p{margin:6px 0 0;font-size:14px}
 .progress-text{font-size:28px;font-weight:bold;color:#4f8ed8}
 .progress-bar{height:14px;background:#e9f5ff;border-radius:20px;overflow:hidden;margin-top:10px}
 .progress-fill{height:100%;width:0;background:linear-gradient(90deg,#65b8ff,#8baaff,#ffacd5);transition:width .3s}
+.actions.top-actions{margin-top:0;margin-bottom:14px}
 .controls{display:flex;gap:8px;margin-bottom:12px}
 .controls button{
   flex:1;border:2px solid #d5ecff;border-radius:15px;padding:11px 4px;
@@ -211,7 +212,7 @@ header p{margin:6px 0 0;font-size:14px}
 <body>
 
 <header>
-<h1>♡ コンプチェッカー ♡</h1>
+<h1>アイカツアンコール!<br>コンプチェック</h1>
 <p id="setSubtitle">アイカツ！アンコール 全カード</p>
 </header>
 
@@ -244,19 +245,25 @@ header p{margin:6px 0 0;font-size:14px}
 <div id="count">0 / 85 枚</div>
 </div>
 
+<div class="actions top-actions">
+<button onclick="makeList('want')">求カードの画像化</button>
+<button onclick="makeList('trade')">譲カードの画像化</button>
+</div>
+
 <input class="search" id="search" type="text" placeholder="🔍 カード番号を検索">
 
 <div class="controls">
 <button class="active" onclick="setFilter('all',this)">すべて</button>
 <button onclick="setFilter('have',this)">所持</button>
-<button onclick="setFilter('want',this)">欲しいもの</button>
+<button onclick="setFilter('want',this)">求</button>
+<button onclick="setFilter('trade',this)">譲</button>
 </div>
 
 <div class="cards" id="cards"></div>
 
 <div class="actions">
-<button onclick="makeList('want')">欲しいものリストを画像化</button>
-<button onclick="makeList('have')">譲りカードリストを画像化</button>
+<button onclick="makeList('want')">求カードの画像化</button>
+<button onclick="makeList('trade')">譲カードの画像化</button>
 </div>
 
 <button class="reset" onclick="resetData()">データをリセット</button>
@@ -268,7 +275,7 @@ header p{margin:6px 0 0;font-size:14px}
 <div style="font-size:13px;color:#777;margin-bottom:6px">このカードの状態を選んでください</div>
 <div class="choice">
 <button id="noneBtn" onclick="chooseType('none')">未設定</button>
-<button id="wantBtn" onclick="chooseType('want')">♡ 欲しいもの</button>
+<button id="wantBtn" onclick="chooseType('want')">♡ 求</button>
 <button id="haveBtn" onclick="chooseType('have')">📦 所持数</button>
 </div>
 <input class="qty" id="qty" type="number" min="0" max="99" value="1" placeholder="所持数">
@@ -482,7 +489,7 @@ cards=key==="all"?[...cardsE1,...sets.e2.cards,...sets.e3.cards,...sets.e4.cards
 filter="all";
 document.getElementById("setSelector").value=key;
 document.getElementById("setSubtitle").textContent=currentSet.subtitle;
-document.title="♡ コンプチェッカー ♡ "+currentSet.name;
+document.title="アイカツアンコール! コンプチェック - "+currentSet.name;
 document.querySelectorAll(".controls button").forEach((b,i)=>b.classList.toggle("active",i===0));
 loadSetData();render();
 }
@@ -571,7 +578,7 @@ function render(){
 const s=document.getElementById("search").value.toLowerCase(),area=document.getElementById("cards");
 const filtered=cards.filter(c=>{
 const d=normalizedState(c);
-return c.id.toLowerCase().includes(s)&&(filter==="all"||(filter==="want"&&d.want)||(filter==="have"&&d.have));
+return c.id.toLowerCase().includes(s)&&(filter==="all"||(filter==="want"&&d.want)||(filter==="have"&&d.have)||(filter==="trade"&&d.trade>0));
 });
 area.innerHTML=cards.length&&filtered.length?filtered.map(c=>{
 const d=normalizedState(c);
@@ -622,8 +629,6 @@ b.classList.add("active");render();
 }
 
 function openModal(id){
-return;
-/*
 editingId=id;
 const d=state(cards.find(c=>c.id===id));
 editingType=d.type||"none";
@@ -631,7 +636,6 @@ document.getElementById("modalTitle").textContent=id;
 document.getElementById("qty").value=d.qty||1;
 updateChoice();
 document.getElementById("modal").classList.add("open");
-*/
 }
 
 function closeModal(){
@@ -678,10 +682,12 @@ if(window.firebaseUser&&window.cloudSyncReady&&window.syncToCloud)window.syncToC
 /* ===== 画像リスト作成・保存 ===== */
 function getListCards(type){
 return cards.filter(c=>{
-const d=normalizedState(c);
+const d=state(c);
 return type==="want"
-?d.want
-:d.trade>0;
+?normalizedState(c).want
+:type==="trade"
+?normalizedState(c).trade>0
+:normalizedState(c).have;
 });
 }
 
@@ -698,11 +704,11 @@ img.src=src;
 async function makeList(type){
 const list=getListCards(type);
 if(!list.length){
-alert(type==="want"?"欲しいものがありません。":"所持カードがありません。");
+alert(type==="want"?"求カードがありません。":type==="trade"?"譲カードがありません。":"所持カードがありません。");
 return;
 }
 
-const title=type==="want"?"欲しいものリスト":"譲りカードリスト";
+const title=type==="want"?"アイカツアンコール! 求めリスト":type==="trade"?"アイカツアンコール! 譲りリスト":"アイカツアンコール! 所持カードリスト";
 const width=1660, cardW=180, cardH=260, gap=20, top=150, side=40;
 const cols=8, rows=5, perPage=cols*rows;
 const pageCount=Math.ceil(list.length/perPage);
@@ -723,7 +729,7 @@ ctx.fillRect(0,0,width,height);
 ctx.fillStyle="#4a3b45";
 ctx.textAlign="center";
 ctx.font="bold 42px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
-ctx.fillText("アイカツアンコール! 求めリスト",width/2,58);
+ctx.fillText("♡ コンプチェッカー ♡",width/2,58);
 
 ctx.font="bold 30px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 ctx.fillText(title,width/2,105);
@@ -755,22 +761,23 @@ const dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;
 ctx.drawImage(img,x+(cardW-dw)/2,y+pad+(ih-dh)/2,dw,dh);
 }
 
-ctx.fillStyle="#4a3b45";
 ctx.textAlign="center";
-ctx.font="bold 18px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
-ctx.fillText(c.id,x+cardW/2,y+cardH-16);
-
-if(type==="have"){
-ctx.beginPath();
-ctx.arc(x+cardW/2,y+cardH+18,15,0,Math.PI*2);
-ctx.fillStyle="#fff";
-ctx.fill();
-ctx.strokeStyle="#8fb7dd";
-ctx.lineWidth=2;
-ctx.stroke();
-ctx.fillStyle="#6d96bd";
-ctx.font="bold 16px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
-ctx.fillText(String(d.trade),x+cardW/2,y+cardH+24);
+if(type==="trade"){
+  const n=Math.max(0,Number(d.trade)||0);
+  const cx=x+cardW/2, cy=y+cardH-15, r=18;
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle="#5d8fd3";
+  ctx.fill();
+  ctx.fillStyle="#fff";
+  ctx.font="bold 17px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+  ctx.textBaseline="middle";
+  ctx.fillText(String(n),cx,cy);
+  ctx.textBaseline="alphabetic";
+}else{
+  ctx.fillStyle="#4a3b45";
+  ctx.font="bold 18px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+  ctx.fillText(c.id,x+cardW/2,y+cardH-16);
 }
 }
 
@@ -850,9 +857,15 @@ if(p)p.remove();
 window.currentListDataUrl="";window.currentListImages=[];window.currentListPage=0;
 }
 
+function getLatestNumberedSetKey(){
+for(const k of ["e6","e5","e4","e3","e2","e1"]){
+if(sets[k] && sets[k].cards && sets[k].cards.length) return k;
+}
+return "e1";
+}
+
 document.getElementById("search").addEventListener("input",render);
-loadSetData();
-render();
+switchSet(getLatestNumberedSetKey());
 </script>
 </body>
 </html>
