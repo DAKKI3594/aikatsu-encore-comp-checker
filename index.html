@@ -592,16 +592,16 @@ return `<div class="card${haveClass}">
   <div class="card-id-row"><span class="card-id">${c.id}</span></div>
   ${name?`<div class="card-name-text">${name}</div>`:""}
 </div>
-${c.parallel?`<div class="parallel-switch"><button type="button" class="${!showingParallel?"active":""}" onclick="toggleParallel('${c.id}',false)">通常</button><button type="button" class="${showingParallel?"active":""}" onclick="toggleParallel('${c.id}',true)">パラレル</button></div>`:""}
+${c.parallel?`<div class="parallel-switch"><button type="button" class="${!showingParallel?"active":""}" data-action="parallel-off" data-card-id="${c.id}">通常</button><button type="button" class="${showingParallel?"active":""}" data-action="parallel-on" data-card-id="${c.id}">パラレル</button></div>`:""}
 </div>
-<button class="card-status ${d.have?"have":""}" type="button" onclick="toggleOwned('${c.id}')">${d.have?"✓ 所持済":"♡ 未所持"}</button>
+<button class="card-status ${d.have?"have":""}" type="button" data-action="owned" data-card-id="${c.id}">${d.have?"✓ 所持済":"♡ 未所持"}</button>
 <div class="card-actions">
   <div class="trade-control">
-    <button type="button" aria-label="譲る数を減らす" onclick="changeTrade('${c.id}',-1)">−</button>
+    <button type="button" aria-label="譲る数を減らす" data-action="trade-minus" data-card-id="${c.id}">−</button>
     <span class="trade-label">譲 ${d.trade}</span>
-    <button type="button" aria-label="譲る数を増やす" onclick="changeTrade('${c.id}',1)">＋</button>
+    <button type="button" aria-label="譲る数を増やす" data-action="trade-plus" data-card-id="${c.id}">＋</button>
   </div>
-  <button class="want-toggle ${d.want?"selected":""}" type="button" onclick="toggleWant('${c.id}')">${d.want?"求 ✓":"求"}</button>
+  <button class="want-toggle ${d.want?"selected":""}" type="button" data-action="want" data-card-id="${c.id}">${d.want?"求 ✓":"求"}</button>
 </div>
 </div>`;
 }).join(""):'<div class="empty">該当するカードがありません</div>';
@@ -865,6 +865,22 @@ return "e1";
 }
 
 document.getElementById("search").addEventListener("input",render);
+
+// カード操作は親要素でまとめて受け取り、カードごとのクリック処理が途切れないようにする
+document.getElementById("cards").addEventListener("click",function(event){
+const button=event.target.closest("button[data-action]");
+if(!button || !this.contains(button)) return;
+const id=button.getAttribute("data-card-id");
+if(!id) return;
+switch(button.getAttribute("data-action")){
+case "want": toggleWant(id); break;
+case "owned": toggleOwned(id); break;
+case "trade-minus": changeTrade(id,-1); break;
+case "trade-plus": changeTrade(id,1); break;
+case "parallel-off": toggleParallel(id,false); break;
+case "parallel-on": toggleParallel(id,true); break;
+}
+});
 switchSet(getLatestNumberedSetKey());
 </script>
 </body>
