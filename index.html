@@ -702,52 +702,10 @@ img.src=src;
 }
 
 async function makeList(type){
-let list=getListCards(type);
+const list=getListCards(type);
 if(!list.length){
 alert(type==="want"?"求カードがありません。":type==="trade"?"譲カードがありません。":"所持カードがありません。");
 return;
-}
-
-const sortChoice=prompt(
-  "画像の並び順を選んでね！\\n\\n"+
-  "1：カード番号順\\n"+
-  "2：欲しいものを先に\\n"+
-  "3：自分で順番を指定\\n\\n"+
-  "番号を入力してください",
-  "1"
-);
-if(sortChoice===null)return;
-
-function compareCardNumber(a,b){
-  return a.id.localeCompare(b.id,"ja",{numeric:true,sensitivity:"base"});
-}
-
-if(sortChoice.trim()==="1"){
-  list.sort(compareCardNumber);
-}else if(sortChoice.trim()==="2"){
-  list.sort((a,b)=>{
-    const aWant=normalizedState(a).want?1:0;
-    const bWant=normalizedState(b).want?1:0;
-    return bWant-aWant || compareCardNumber(a,b);
-  });
-}else if(sortChoice.trim()==="3"){
-  const orderText=prompt(
-    "並べたいカード番号を左から入力してね。\\n"+
-    "カンマ区切りで入力します。\\n\\n"+
-    "例：E1-05,E1-06,E1-10"
-  );
-  if(orderText===null)return;
-  const order=orderText.split(",").map(s=>s.trim()).filter(Boolean);
-  const rank=new Map();
-  order.forEach((id,index)=>{if(!rank.has(id))rank.set(id,index);});
-  list.sort((a,b)=>{
-    const ai=rank.has(a.id)?rank.get(a.id):Infinity;
-    const bi=rank.has(b.id)?rank.get(b.id):Infinity;
-    return ai-bi || compareCardNumber(a,b);
-  });
-}else{
-  alert("1、2、3のいずれかを入力してください。");
-  return;
 }
 
 const title = type==="want" ? "求めリスト"
