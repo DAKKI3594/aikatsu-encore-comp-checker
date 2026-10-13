@@ -592,16 +592,16 @@ return `<div class="card${haveClass}">
   <div class="card-id-row"><span class="card-id">${c.id}</span></div>
   ${name?`<div class="card-name-text">${name}</div>`:""}
 </div>
-${c.parallel?`<div class="parallel-switch"><button type="button" class="${!showingParallel?"active":""}" data-action="parallel-off" data-card-id="${c.id}">通常</button><button type="button" class="${showingParallel?"active":""}" data-action="parallel-on" data-card-id="${c.id}">パラレル</button></div>`:""}
+${c.parallel?`<div class="parallel-switch"><button type="button" class="${!showingParallel?"active":""}" onclick="toggleParallel('${c.id}',false)">通常</button><button type="button" class="${showingParallel?"active":""}" onclick="toggleParallel('${c.id}',true)">パラレル</button></div>`:""}
 </div>
-<button class="card-status ${d.have?"have":""}" type="button" data-action="owned" data-card-id="${c.id}">${d.have?"✓ 所持済":"♡ 未所持"}</button>
+<button class="card-status ${d.have?"have":""}" type="button" onclick="toggleOwned('${c.id}')">${d.have?"✓ 所持済":"♡ 未所持"}</button>
 <div class="card-actions">
   <div class="trade-control">
-    <button type="button" aria-label="譲る数を減らす" data-action="trade-minus" data-card-id="${c.id}">−</button>
+    <button type="button" aria-label="譲る数を減らす" onclick="changeTrade('${c.id}',-1)">−</button>
     <span class="trade-label">譲 ${d.trade}</span>
-    <button type="button" aria-label="譲る数を増やす" data-action="trade-plus" data-card-id="${c.id}">＋</button>
+    <button type="button" aria-label="譲る数を増やす" onclick="changeTrade('${c.id}',1)">＋</button>
   </div>
-  <button class="want-toggle ${d.want?"selected":""}" type="button" data-action="want" data-card-id="${c.id}">${d.want?"求 ✓":"求"}</button>
+  <button class="want-toggle ${d.want?"selected":""}" type="button" onclick="toggleWant('${c.id}')">${d.want?"求 ✓":"求"}</button>
 </div>
 </div>`;
 }).join(""):'<div class="empty">該当するカードがありません</div>';
@@ -702,13 +702,57 @@ img.src=src;
 }
 
 async function makeList(type){
-const list=getListCards(type);
+let list=getListCards(type);
 if(!list.length){
 alert(type==="want"?"求カードがありません。":type==="trade"?"譲カードがありません。":"所持カードがありません。");
 return;
 }
 
-const title=type==="want"?"アイカツアンコール! 求めリスト":type==="trade"?"アイカツアンコール! 譲りリスト":"アイカツアンコール! 所持カードリスト";
+const sortChoice=prompt(
+  "画像の並び順を選んでね！\\n\\n"+
+  "1：カード番号順\\n"+
+  "2：欲しいものを先に\\n"+
+  "3：自分で順番を指定\\n\\n"+
+  "番号を入力してください",
+  "1"
+);
+if(sortChoice===null)return;
+
+function compareCardNumber(a,b){
+  return a.id.localeCompare(b.id,"ja",{numeric:true,sensitivity:"base"});
+}
+
+if(sortChoice.trim()==="1"){
+  list.sort(compareCardNumber);
+}else if(sortChoice.trim()==="2"){
+  list.sort((a,b)=>{
+    const aWant=normalizedState(a).want?1:0;
+    const bWant=normalizedState(b).want?1:0;
+    return bWant-aWant || compareCardNumber(a,b);
+  });
+}else if(sortChoice.trim()==="3"){
+  const orderText=prompt(
+    "並べたいカード番号を左から入力してね。\\n"+
+    "カンマ区切りで入力します。\\n\\n"+
+    "例：E1-05,E1-06,E1-10"
+  );
+  if(orderText===null)return;
+  const order=orderText.split(",").map(s=>s.trim()).filter(Boolean);
+  const rank=new Map();
+  order.forEach((id,index)=>{if(!rank.has(id))rank.set(id,index);});
+  list.sort((a,b)=>{
+    const ai=rank.has(a.id)?rank.get(a.id):Infinity;
+    const bi=rank.has(b.id)?rank.get(b.id):Infinity;
+    return ai-bi || compareCardNumber(a,b);
+  });
+}else{
+  alert("1、2、3のいずれかを入力してください。");
+  return;
+}
+
+const title = type==="want" ? "求めリスト"
+  : type==="trade" ? "譲りリスト"
+  : "所持カードリスト";
 const width=1660, cardW=180, cardH=260, gap=20, top=150, side=40;
 const cols=8, rows=5, perPage=cols*rows;
 const pageCount=Math.ceil(list.length/perPage);
@@ -729,7 +773,7 @@ ctx.fillRect(0,0,width,height);
 ctx.fillStyle="#4a3b45";
 ctx.textAlign="center";
 ctx.font="bold 42px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
-ctx.fillText("アイカツアンコール! 求めリスト",width/2,58);
+ctx.fillText("アイカツ！アンコール",width/2,58);
 
 ctx.font="bold 30px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 ctx.fillText(title,width/2,105);
@@ -865,22 +909,6 @@ return "e1";
 }
 
 document.getElementById("search").addEventListener("input",render);
-
-// カード操作は親要素でまとめて受け取り、カードごとのクリック処理が途切れないようにする
-document.getElementById("cards").addEventListener("click",function(event){
-const button=event.target.closest("button[data-action]");
-if(!button || !this.contains(button)) return;
-const id=button.getAttribute("data-card-id");
-if(!id) return;
-switch(button.getAttribute("data-action")){
-case "want": toggleWant(id); break;
-case "owned": toggleOwned(id); break;
-case "trade-minus": changeTrade(id,-1); break;
-case "trade-plus": changeTrade(id,1); break;
-case "parallel-off": toggleParallel(id,false); break;
-case "parallel-on": toggleParallel(id,true); break;
-}
-});
 switchSet(getLatestNumberedSetKey());
 </script>
 </body>
