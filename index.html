@@ -102,12 +102,16 @@ header p{margin:6px 0 0;font-size:14px}
   overflow:hidden;color:#7090b0;font-size:13px;text-align:center
 }
 .card-image img{width:100%;height:100%;object-fit:contain;display:block}
-body.gray-owned .card.have-card .card-image img{filter:grayscale(1)}
-.settings-button{position:absolute;right:12px;top:12px;border:1px solid #ffffff88;background:#ffffff33;color:white;border-radius:50%;width:42px;height:42px;font-size:22px;cursor:pointer}
-.settings-sheet{background:white;border-radius:22px;padding:22px;max-width:420px;width:calc(100% - 28px);margin:auto;color:#426080}
-.settings-sheet label{display:flex;gap:10px;align-items:center;margin:16px 0;font-weight:700}
-.settings-sheet input{width:20px;height:20px}
-.catalog-btn{background:#fff0f8!important;color:#a94d83!important;border:1px solid #ffc7e5!important}
+.card.have-card .card-image img{filter:grayscale(1)}
+.card.have-card .card-image{position:relative}
+.card.have-card .card-image:after{content:"✓";position:absolute;right:6px;top:6px;width:27px;height:27px;border-radius:50%;background:#fff;color:#398bd3;border:2px solid #65b8f5;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;box-shadow:0 2px 6px #0002}
+.catalog-button{background:linear-gradient(135deg,#2c9af0,#4976e8)!important;color:#fff!important;border:0!important}
+.set-rates{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:12px 0}
+.set-rate{background:#f5fbff;border:1px solid #cce8ff;border-radius:12px;padding:10px;font-size:12px;color:#41678d}
+.set-rate strong{display:block;font-size:14px;margin-bottom:4px;color:#167bc7}
+.set-rate .rate-bar{height:7px;background:#dcecf8;border-radius:8px;overflow:hidden;margin-top:6px}
+.set-rate .rate-bar span{display:block;height:100%;background:#2599ed}
+
 
 .parallel-switch{display:flex;gap:5px;margin-top:6px}
 .parallel-switch button{flex:1;padding:5px 4px;border:1px solid #b9dcfa;border-radius:9px;background:#f6fbff;color:#5d82a8;font-size:11px;font-weight:800;cursor:pointer}
@@ -220,7 +224,7 @@ body.gray-owned .card.have-card .card-image img{filter:grayscale(1)}
 <header>
 <h1>アイカツアンコール!<br>コンプチェック</h1>
 <p id="setSubtitle">アイカツ！アンコール 全カード</p>
-<button class="settings-button" type="button" aria-label="設定" onclick="openSettings()">⚙</button></header>
+</header>
 
 <div class="auth-box">
 <div class="auth-panel">
@@ -249,12 +253,13 @@ body.gray-owned .card.have-card .card-image img{filter:grayscale(1)}
 <div class="progress-text" id="percent">0%</div>
 <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
 <div id="count">0 / 85 枚</div>
+<div id="setRates" class="set-rates"></div>
 </div>
 
 <div class="actions top-actions">
-<button onclick="makeList('want')">求リスト</button>
-<button onclick="makeList('trade')">譲リスト</button>
-<button class="catalog-btn" onclick="makeCatalog()">カードリスト</button>
+<button onclick="makeList('want')">欲しいもの画像化</button>
+<button onclick="makeList('trade')">所持数リスト画像化</button>
+<button class="catalog-button" onclick="makeCatalogList()">カードリスト</button>
 </div>
 
 <input class="search" id="search" type="text" placeholder="🔍 カード番号を検索">
@@ -269,18 +274,13 @@ body.gray-owned .card.have-card .card-image img{filter:grayscale(1)}
 
 <div class="cards" id="cards"></div>
 
-<button class="reset" onclick="resetData()">データをリセット</button>
+<div class="actions">
+<button onclick="makeList('want')">求カードの画像化</button>
+<button onclick="makeList('trade')">譲カードの画像化</button>
 </div>
 
-<div class="modal" id="settingsModal"><div class="settings-sheet">
-<h2>表示設定</h2>
-<label><input type="checkbox" id="grayOwned" checked onchange="saveSettings()"> 所持済みカードをグレー表示</label>
-<label><input type="checkbox" id="showFilters" checked onchange="saveSettings()"> 絞り込みボタンを表示</label>
-<div style="margin:16px 0;font-weight:700">カードリストの列数</div>
-<select id="catalogCols" onchange="saveSettings()" style="width:100%;padding:12px;border:1px solid #bfe4ff;border-radius:12px"><option value="8">8列</option><option value="10" selected>10列</option></select>
-<label><input type="checkbox" id="rememberSettings" checked onchange="saveSettings()"> 設定を次回も保存</label>
-<div class="sheet-actions"><button onclick="closeSettings()">閉じる</button></div>
-</div></div>
+<button class="reset" onclick="resetData()">データをリセット</button>
+</div>
 
 <div class="modal" id="modal">
 <div class="sheet">
@@ -623,16 +623,10 @@ updateProgress();
 
 function updateProgress(){
 const have=cards.filter(c=>normalizedState(c).have).length,total=cards.length;
-if(!total){
-document.getElementById("percent").textContent="準備中";
-document.getElementById("progress").style.width="0%";
-document.getElementById("count").textContent="カード登録後に使えます";
-return;
-}
-const p=Math.round(have/total*100);
-document.getElementById("percent").textContent=p+"%";
-document.getElementById("progress").style.width=p+"%";
-document.getElementById("count").textContent=have+" / "+total+" 枚";
+if(!total){document.getElementById("percent").textContent="準備中";document.getElementById("progress").style.width="0%";document.getElementById("count").textContent="カード登録後に使えます";}
+else{const p=Math.round(have/total*100);document.getElementById("percent").textContent=p+"%";document.getElementById("progress").style.width=p+"%";document.getElementById("count").textContent=have+" / "+total+" 枚";}
+const rateEl=document.getElementById("setRates");
+if(rateEl){const allSets=[{name:"1弾",list:cardsE1},{name:"2弾",list:sets.e2.cards},{name:"3弾",list:sets.e3.cards},{name:"4弾",list:sets.e4.cards},{name:"5弾",list:sets.e5.cards},{name:"6弾",list:sets.e6.cards},{name:"プロモーション",list:sets.promo.cards}];rateEl.innerHTML=allSets.map(x=>{const owned=x.list.filter(c=>normalizedState(c).have).length,n=x.list.length,pct=n?Math.round(owned/n*100):0;return `<div class="set-rate"><strong>${x.name}　${pct}%</strong>所持 ${owned} / ${n} 枚<br>残り ${n-owned} 枚<div class="rate-bar"><span style="width:${pct}%"></span></div></div>`}).join("");}
 }
 
 function setFilter(t,b){
@@ -693,47 +687,6 @@ if(window.firebaseUser&&window.cloudSyncReady&&window.syncToCloud)window.syncToC
 }
 
 /* ===== 画像リスト作成・保存 ===== */
-function openSettings(){document.getElementById("settingsModal").classList.add("open");}
-function closeSettings(){document.getElementById("settingsModal").classList.remove("open");}
-function saveSettings(){
- const remember=document.getElementById("rememberSettings").checked;
- const cfg={gray:document.getElementById("grayOwned").checked,filters:document.getElementById("showFilters").checked,cols:document.getElementById("catalogCols").value};
- if(remember)localStorage.setItem("encore-display-settings-v1",JSON.stringify(cfg));else localStorage.removeItem("encore-display-settings-v1");
- applySettings(cfg);
-}
-function applySettings(cfg){
- document.body.classList.toggle("gray-owned",cfg.gray!==false);
- const controls=document.querySelector(".controls");if(controls)controls.style.display=cfg.filters===false?"none":"flex";
- const cols=document.getElementById("catalogCols");if(cols)cols.value=String(cfg.cols||10);
- document.getElementById("grayOwned").checked=cfg.gray!==false;
- document.getElementById("showFilters").checked=cfg.filters!==false;
- document.getElementById("rememberSettings").checked=true;
-}
-function loadSettings(){try{const raw=localStorage.getItem("encore-display-settings-v1");if(raw)applySettings(JSON.parse(raw));}catch(e){}}
-async function makeCatalog(){
- const list=[...cards].sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
- if(!list.length){alert("カードがありません。");return;}
- const cols=Number(document.getElementById("catalogCols")?.value||10),rows=10,perPage=cols*rows;
- const cardW=cols===10?140:170,cardH=cardW*1.42,gap=10,side=24,top=125;
- const width=side*2+cols*(cardW+gap)-gap,pageCount=Math.ceil(list.length/perPage),images=[];
- for(let page=0;page<pageCount;page++){
-  const chunk=list.slice(page*perPage,(page+1)*perPage),height=top+rows*(cardH+gap)+25;
-  const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;const ctx=canvas.getContext("2d");
-  ctx.fillStyle="#f5fbff";ctx.fillRect(0,0,width,height);ctx.textAlign="center";ctx.fillStyle="#426080";
-  ctx.font="bold 30px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillText("アイカツ！アンコール カードリスト",width/2,38);
-  ctx.font="bold 24px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillText(currentSet.name||"すべて",width/2,76);
-  ctx.font="16px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillText(`${list.length}枚　${page+1}/${pageCount}ページ`,width/2,105);
-  for(let i=0;i<chunk.length;i++){
-   const c=chunk[i],col=i%cols,row=Math.floor(i/cols),x=side+col*(cardW+gap),y=top+row*(cardH+gap),d=normalizedState(c);
-   ctx.fillStyle="#fff";ctx.fillRect(x,y,cardW,cardH);
-   const im=await loadImage(c.image||"");if(im){ctx.save();if(d.have)ctx.filter="grayscale(1)";ctx.drawImage(im,x+3,y+3,cardW-6,cardH-24);ctx.restore();}
-   ctx.fillStyle="#426080";ctx.textAlign="center";ctx.font="bold 12px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillText(c.id,x+cardW/2,y+cardH-8);
-  }
-  images.push({dataUrl:canvas.toDataURL("image/png")});
- }
- showListPreview(images,"カードリスト");
-}
-
 function getListCards(type){
 return cards.filter(c=>{
 const d=state(c);
@@ -762,7 +715,7 @@ alert(type==="want"?"求カードがありません。":type==="trade"?"譲カ�
 return;
 }
 
-const title=type==="want"?"求めリスト":type==="trade"?"譲りリスト":"所持カードリスト";
+const title=type==="want"?"アイカツアンコール! 求めリスト":type==="trade"?"アイカツアンコール! 譲りリスト":"アイカツアンコール! 所持カードリスト";
 const width=1660, cardW=180, cardH=260, gap=20, top=150, side=40;
 const cols=8, rows=5, perPage=cols*rows;
 const pageCount=Math.ceil(list.length/perPage);
@@ -783,7 +736,7 @@ ctx.fillRect(0,0,width,height);
 ctx.fillStyle="#4a3b45";
 ctx.textAlign="center";
 ctx.font="bold 42px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
-ctx.fillText("アイカツ！アンコール",width/2,58);
+ctx.fillText("アイカツアンコール! 求めリスト",width/2,58);
 
 ctx.font="bold 30px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 ctx.fillText(title,width/2,105);
@@ -843,6 +796,31 @@ page:page+1
 
 showListPreview(images,title);
 }
+async function makeCatalogList(){
+ const categoryName=currentSetKey==="all"?"すべて":currentSet.name;
+ const list=[...cards].sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
+ if(!list.length){alert("カードがありません。");return;}
+ const width=1660, cols=10, rows=10, perPage=100, cardW=145, cardH=205, gap=12, side=30, top=130;
+ const pageCount=Math.ceil(list.length/perPage),images=[];
+ for(let page=0;page<pageCount;page++){
+  const chunk=list.slice(page*perPage,(page+1)*perPage);
+  const canvas=document.createElement("canvas");canvas.width=width;canvas.height=top+rows*(cardH+gap)+35;
+  const ctx=canvas.getContext("2d");ctx.fillStyle="#fff8fc";ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.textAlign="center";ctx.fillStyle="#187fc7";ctx.font="bold 38px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillText("アイカツ！アンコール カードリスト",width/2,48);
+  ctx.font="bold 28px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillText("『"+categoryName+"』",width/2,91);
+  ctx.font="16px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillStyle="#5c7793";ctx.fillText("番号順　"+list.length+"枚　"+(page+1)+" / "+pageCount, width/2,117);
+  for(let i=0;i<chunk.length;i++){
+   const c=chunk[i],col=i%cols,row=Math.floor(i/cols),x=side+col*(cardW+gap),y=top+row*(cardH+gap);
+   ctx.fillStyle="#fff";ctx.strokeStyle="#d5eaff";ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x,y,cardW,cardH,10);ctx.fill();ctx.stroke();
+   const img=await loadImage(c.image||"");
+   if(img){const maxW=cardW-14,maxH=cardH-36;ctx.save();if(img.naturalWidth>img.naturalHeight){ctx.translate(x+cardW/2,y+maxH/2+5);ctx.rotate(Math.PI/2);const scale=Math.min(maxH/img.naturalWidth,maxW/img.naturalHeight);ctx.drawImage(img,-img.naturalWidth*scale/2,-img.naturalHeight*scale/2,img.naturalWidth*scale,img.naturalHeight*scale);}else{const scale=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);const dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;ctx.drawImage(img,x+(cardW-dw)/2,y+5+(maxH-dh)/2,dw,dh);}ctx.restore();}
+   ctx.textAlign="center";ctx.fillStyle="#275d91";ctx.font="bold 15px -apple-system,BlinkMacSystemFont,sans-serif";ctx.fillText(c.id,x+cardW/2,y+cardH-12);
+  }
+  images.push({dataUrl:canvas.toDataURL("image/png"),page:page+1});
+ }
+ showListPreview(images,"アイカツ！アンコール カードリスト『"+categoryName+"』");
+}
+
 function showListPreview(images,title){
 const old=document.getElementById("listPreview");
 if(old)old.remove();
@@ -864,7 +842,7 @@ wrap.innerHTML=`
 <strong>${title}</strong>
 <button type="button" onclick="closeListPreview()">閉じる</button>
 </div>
-<div class="preview-note">画像を長押しして「写真に保存」できます。</div>
+<div class="preview-note">最大100枚。画像を長押しして「写真に保存」できます。</div>
 <div class="preview-body"><img id="generatedListImage" alt="${title}"></div>
 <div id="pageButtons" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${pageButtons}</div>
 <div class="preview-actions">
@@ -920,7 +898,6 @@ return "e1";
 
 document.getElementById("search").addEventListener("input",render);
 switchSet(getLatestNumberedSetKey());
-loadSettings();
 </script>
 </body>
 </html>
