@@ -288,7 +288,7 @@ header p{margin:6px 0 0;font-size:14px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -391,11 +391,17 @@ async function syncFromCloud(){
 
 window.loginWithGoogle=async function(){
   try{
-    setAuthUI("Googleログイン中…","Googleのログイン画面へ移動します…");
-    await signInWithRedirect(auth,googleProvider);
+    setAuthUI("Googleログイン中…","Googleログインを確認しています…");
+    const result = await signInWithPopup(auth, googleProvider);
+    if(result && result.user){
+      window.firebaseUser = result.user;
+      setAuthUI(result.user.displayName || result.user.email || "ログイン済み", "クラウド保存を準備しています…");
+      await syncFromCloud();
+    }
   }catch(err){
-    console.error(err);
-    setAuthUI("Googleログインしていません","ログインできませんでした："+(err.code||err.message),"error");
+    console.error("Google popup login error:",err);
+    window.cloudSyncReady=false;
+    setAuthUI("Googleログインしていません", "ログインエラー："+(err.code || err.message || "原因を確認できませんでした"), "error");
   }
 };
 
