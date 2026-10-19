@@ -288,7 +288,7 @@ header p{margin:6px 0 0;font-size:14px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -391,17 +391,11 @@ async function syncFromCloud(){
 
 window.loginWithGoogle=async function(){
   try{
-    setAuthUI("Googleログイン中…","Googleログインを確認しています…");
-    const result = await signInWithPopup(auth, googleProvider);
-    if(result && result.user){
-      window.firebaseUser = result.user;
-      setAuthUI(result.user.displayName || result.user.email || "ログイン済み", "クラウド保存を準備しています…");
-      await syncFromCloud();
-    }
+    setAuthUI("Googleログイン中…","Googleのログイン画面へ移動します…");
+    await signInWithRedirect(auth,googleProvider);
   }catch(err){
-    console.error("Google popup login error:",err);
-    window.cloudSyncReady=false;
-    setAuthUI("Googleログインしていません", "ログインエラー："+(err.code || err.message || "原因を確認できませんでした"), "error");
+    console.error(err);
+    setAuthUI("Googleログインしていません","ログインできませんでした："+(err.code||err.message),"error");
   }
 };
 
@@ -413,25 +407,14 @@ window.logoutGoogle=async function(){
   }catch(err){ console.error(err); }
 };
 
-getRedirectResult(auth).then(result=>{
-  if(result && result.user){
-    window.firebaseUser=result.user;
-  }
-}).catch(err=>{
-  console.error("Google redirect error:",err);
-  window.cloudSyncReady=false;
-  setAuthUI("Googleログインしていません", "ログインエラー："+(err.code || err.message || "原因を確認できませんでした"), "error");
+getRedirectResult(auth).catch(err=>{
+  if(err) console.error("Google redirect error:",err);
 });
 
 onAuthStateChanged(auth,user=>{
   window.firebaseUser=user;
   if(user){ syncFromCloud(); }
   else { window.cloudSyncReady=false; setAuthUI("Googleログインしていません","端末内に自動保存されています"); }
-},err=>{
-  console.error("Google auth state error:",err);
-  window.firebaseUser=null;
-  window.cloudSyncReady=false;
-  setAuthUI("Googleログインしていません", "認証エラー："+(err.code || err.message || "原因を確認できませんでした"), "error");
 });
 </script>
 
@@ -725,7 +708,9 @@ alert(type==="want"?"求カードがありません。":type==="trade"?"譲カ�
 return;
 }
 
-const title=type==="want"?"アイカツアンコール! 求めリスト":type==="trade"?"アイカツアンコール! 譲りリスト":"アイカツアンコール! 所持カードリスト";
+const title = type==="want" ? "求めリスト"
+  : type==="trade" ? "譲りリスト"
+  : "所持カードリスト";
 const width=1660, cardW=180, cardH=260, gap=20, top=150, side=40;
 const cols=8, rows=5, perPage=cols*rows;
 const pageCount=Math.ceil(list.length/perPage);
@@ -746,7 +731,7 @@ ctx.fillRect(0,0,width,height);
 ctx.fillStyle="#4a3b45";
 ctx.textAlign="center";
 ctx.font="bold 42px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
-ctx.fillText("アイカツアンコール! 求めリスト",width/2,58);
+ctx.fillText("アイカツ！アンコール",width/2,58);
 
 ctx.font="bold 30px -apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 ctx.fillText(title,width/2,105);
