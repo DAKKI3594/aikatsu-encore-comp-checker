@@ -248,9 +248,17 @@ header p{margin:6px 0 0;font-size:14px}
 </div>
 
 <div class="container">
+<div class="progress-box">
+<div>コンプリート率</div>
+<div class="progress-text" id="percent">0%</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<div id="count">0 / 85 枚</div>
+<div id="setRates" class="set-rates"></div>
+</div>
+
 <div class="actions top-actions">
-<button onclick="makeList('want')">求リスト</button>
-<button onclick="makeList('trade')">譲リスト</button>
+<button onclick="makeList('want')">欲しいもの画像化</button>
+<button onclick="makeList('trade')">所持数リスト画像化</button>
 <button class="catalog-button" onclick="makeCatalogList()">カードリスト</button>
 </div>
 
@@ -265,6 +273,11 @@ header p{margin:6px 0 0;font-size:14px}
 </div>
 
 <div class="cards" id="cards"></div>
+
+<div class="actions">
+<button onclick="makeList('want')">求カードの画像化</button>
+<button onclick="makeList('trade')">譲カードの画像化</button>
+</div>
 
 <button class="reset" onclick="resetData()">データをリセット</button>
 </div>
