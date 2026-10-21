@@ -708,9 +708,7 @@ alert(type==="want"?"求カードがありません。":type==="trade"?"譲カ�
 return;
 }
 
-const title = type==="want" ? "求めリスト"
-  : type==="trade" ? "譲りリスト"
-  : "所持カードリスト";
+const title=type==="want"?"求リスト":type==="trade"?"譲リスト":"所持カードリスト";
 const width=1660, cardW=180, cardH=260, gap=20, top=150, side=40;
 const cols=8, rows=5, perPage=cols*rows;
 const pageCount=Math.ceil(list.length/perPage);
