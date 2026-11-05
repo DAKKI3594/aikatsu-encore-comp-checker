@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -636,9 +637,14 @@ async function makeList(type) {
   progress.textContent = "画像を準備しています…";
   document.getElementById("listPreview").style.display = "block";
 
+  /* 未所持は100枚、求・譲は40枚で分割 */
+  const pageSize = type === "none" ? 100 : 40;
+  const columns = type === "none" ? 10 : 8;
+  const rows = type === "none" ? 10 : 5;
+
   const pages = [];
-  for(let i=0;i<cards.length;i+=40) {
-    pages.push(cards.slice(i,i+40));
+  for(let i=0;i<cards.length;i+=pageSize) {
+    pages.push(cards.slice(i,i+pageSize));
   }
 
   for(let page=0;page<pages.length;page++) {
@@ -647,7 +653,6 @@ async function makeList(type) {
     progress.textContent =
       "画像 " + (page+1) + " / " + pages.length + " を作成中…";
 
-    /* 画像を8枚ずつ読み込んで負荷を抑える */
     const loadedImages = [];
 
     for(let start=0;start<pageCards.length;start+=8) {
@@ -661,8 +666,28 @@ async function makeList(type) {
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = 1600;
-    canvas.height = 1100;
+
+    let cellW, cellH, cardW, cardH, startX, startY;
+
+    if(type === "none") {
+      canvas.width = 1600;
+      canvas.height = 1700;
+      cellW = 155;
+      cellH = 155;
+      cardW = 145;
+      cardH = 145;
+      startX = 25;
+      startY = 110;
+    } else {
+      canvas.width = 1600;
+      canvas.height = 1100;
+      cellW = 190;
+      cellH = 190;
+      cardW = 170;
+      cardH = 178;
+      startX = 35;
+      startY = 135;
+    }
 
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "#ffffff";
@@ -674,45 +699,55 @@ async function makeList(type) {
 
     ctx.fillStyle = "#a64e79";
     ctx.font = "bold 34px sans-serif";
-    ctx.fillText(title,45,105);
-
-    const cellW = 190;
-    const cellH = 190;
+    ctx.fillText(title,45,100);
 
     for(let i=0;i<pageCards.length;i++) {
       const card = pageCards[i];
-      const x = 35 + (i%8)*cellW;
-      const y = 135 + Math.floor(i/8)*cellH;
+      const x = startX + (i%columns)*cellW;
+      const y = startY + Math.floor(i/columns)*cellH;
 
       ctx.fillStyle = "#f4f8fc";
-      ctx.fillRect(x,y,170,178);
+      ctx.fillRect(x,y,cardW,cardH);
 
       const img = loadedImages[i];
 
       if(img) {
-        const scale = Math.min(150/img.width,125/img.height);
+        const imageMaxW = type === "none" ? 120 : 150;
+        const imageMaxH = type === "none" ? 95 : 125;
+        const scale = Math.min(
+          imageMaxW/img.width,
+          imageMaxH/img.height
+        );
         const w = img.width*scale;
         const h = img.height*scale;
 
         ctx.drawImage(
           img,
-          x+(170-w)/2,
-          y+5+(125-h)/2,
+          x+(cardW-w)/2,
+          y+4+(imageMaxH-h)/2,
           w,
           h
         );
       } else {
         ctx.fillStyle = "#9aa9b5";
-        ctx.font = "16px sans-serif";
-        ctx.fillText("画像準備中",x+35,y+70);
+        ctx.font = type === "none" ? "12px sans-serif" : "16px sans-serif";
+        ctx.fillText("画像準備中",x+10,y+60);
       }
 
       ctx.fillStyle = "#43546a";
-      ctx.font = "bold 17px sans-serif";
-      ctx.fillText(card.id,x+7,y+148);
+      ctx.font = type === "none"
+        ? "bold 13px sans-serif"
+        : "bold 17px sans-serif";
+      ctx.fillText(card.id,x+5,y+(type === "none" ? 116 : 148));
 
-      ctx.font = "14px sans-serif";
-      ctx.fillText(card.name.slice(0,13),x+7,y+169);
+      ctx.font = type === "none"
+        ? "11px sans-serif"
+        : "14px sans-serif";
+      ctx.fillText(
+        card.name.slice(0,type === "none" ? 11 : 13),
+        x+5,
+        y+(type === "none" ? 134 : 169)
+      );
 
       if(type === "trade") {
         const qty = Number(getState(card).trade)||0;
