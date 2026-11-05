@@ -296,11 +296,9 @@ footer {
 </div>
 
 <script>
-/* スプレッドシートの公開CSV */
 const CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFfkMdJchJ3HBmOdF-Ai6IzhmbJiMHIU6naC10iZIc0BXYmGltmyhzy41milF8JG570C1TAPbszRes/pub?output=csv";
 
-/* 新しい保存領域 */
 const STORAGE_PREFIX = "aikatsu-encore-new-v1-";
 const SET_NAMES = {
   e1:"1弾", e2:"2弾", e3:"3弾", e4:"4弾",
@@ -353,7 +351,6 @@ function toggleWant(card) {
   setState(card, s);
 }
 
-/* CSV読み込み */
 function parseCSV(text) {
   text = text.replace(/^\uFEFF/, "");
   const rows = [];
@@ -555,7 +552,6 @@ function updateProgress() {
     owned + " / " + total + " 枚 所持";
 }
 
-/* 画像読み込み */
 function loadCanvasImage(url) {
   return new Promise(resolve => {
     if(!url) return resolve(null);
@@ -588,7 +584,9 @@ async function makeList(type) {
 
     if(type === "want") return s.want;
     if(type === "trade") return Number(s.trade) > 0;
-    if(type === "none") return s.type !== "have";
+
+    // 未所持に設定されているカードだけを対象にする
+    if(type === "none") return s.type === "none";
 
     return false;
   });
@@ -714,7 +712,6 @@ function closePreview() {
   document.getElementById("listPreview").style.display = "none";
 }
 
-/* Firestoreへ保存するデータ */
 function collectAllData() {
   const result = {};
   Object.keys(SET_NAMES).forEach(key => {
@@ -769,7 +766,6 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
-/* Firebase設定 */
 const firebaseConfig = {
   apiKey: "AIzaSyBkQU19ZHACJCdhOfgNZ9F8hcJxsFUUbUo",
   authDomain: "aikatsu-encore-comp-checker.firebaseapp.com",
