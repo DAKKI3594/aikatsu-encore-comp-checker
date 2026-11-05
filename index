@@ -1,0 +1,752 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>アイカツ！アンコール コンプチェッカー</title>
+<style>
+:root {
+  --blue:#5b9bd5;
+  --deep:#397bb8;
+  --pink:#f4a9c5;
+  --bg:#f4f8fc;
+  --text:#43546a;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  padding:14px;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+}
+header {
+  text-align:center;
+  padding:18px 8px;
+  background:linear-gradient(135deg,#d9efff,#fce4ef);
+  border-radius:18px;
+  margin-bottom:14px;
+}
+h1 { font-size:22px; margin:0 0 6px; color:#397bb8; }
+.subtitle { font-size:12px; color:#71869b; }
+.panel {
+  background:white;
+  border-radius:14px;
+  padding:13px;
+  margin-bottom:12px;
+  box-shadow:0 2px 8px #9bb4c522;
+}
+button,select,input {
+  font:inherit;
+}
+button {
+  border:0;
+  border-radius:10px;
+  padding:10px 12px;
+  background:#e5f2fc;
+  color:#397bb8;
+  font-weight:700;
+  cursor:pointer;
+}
+button:active { opacity:.7; }
+button.primary { background:var(--blue); color:white; }
+button.pink { background:#f6dce8; color:#a64e79; }
+button.gray { background:#edf0f3; color:#687887; }
+button:disabled { opacity:.45; }
+select,input {
+  border:1px solid #d5e1eb;
+  border-radius:9px;
+  padding:10px;
+  background:white;
+  color:var(--text);
+  max-width:100%;
+}
+input[type="search"] { width:100%; }
+.row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.row > * { flex:1; }
+.row .fixed { flex:0 0 auto; }
+.small { font-size:12px; color:#8493a1; }
+#loginStatus { font-size:12px; margin:7px 0; }
+#message {
+  text-align:center;
+  font-size:13px;
+  padding:8px;
+  color:#5683a8;
+}
+.progressOuter {
+  background:#eaf0f5;
+  height:10px;
+  border-radius:20px;
+  overflow:hidden;
+  margin:8px 0;
+}
+#progressBar {
+  height:100%;
+  width:0;
+  background:linear-gradient(90deg,#77bde9,#f3a9c7);
+}
+#progressText { font-size:12px; text-align:right; }
+#topActions {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+#filters {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+#filters button { flex:1; min-width:55px; padding:9px 5px; }
+#filters button.active { background:var(--blue); color:white; }
+#cards {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.card {
+  min-width:0;
+  background:white;
+  border-radius:13px;
+  padding:8px;
+  box-shadow:0 2px 7px #9bb4c522;
+  border:1px solid #e8eef4;
+}
+.card.owned { background:#f0f1f3; }
+.card.owned .cardImage img {
+  filter:grayscale(1);
+  opacity:.65;
+}
+.cardImage {
+  width:100%;
+  aspect-ratio:3/4;
+  background:#f0f4f7;
+  border-radius:8px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.cardImage img {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.placeholder {
+  font-size:12px;
+  color:#9aa9b5;
+  text-align:center;
+  padding:8px;
+}
+.cardNumber {
+  font-size:11px;
+  color:#6d91b0;
+  margin-top:7px;
+  font-weight:bold;
+}
+.cardName {
+  font-size:12px;
+  line-height:1.4;
+  min-height:34px;
+  margin:3px 0 7px;
+  overflow-wrap:anywhere;
+}
+.stateButtons {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:4px;
+}
+.stateButtons button {
+  font-size:11px;
+  padding:8px 2px;
+}
+.stateButtons button.selected {
+  background:var(--blue);
+  color:white;
+}
+.cardFooter {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:4px;
+  margin-top:6px;
+}
+.cardFooter button {
+  font-size:11px;
+  padding:6px 8px;
+}
+.qty { font-size:11px; color:#71869b; }
+#listPreview {
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:20;
+  background:#0009;
+  overflow:auto;
+  padding:15px;
+}
+.previewBox {
+  background:white;
+  border-radius:14px;
+  padding:12px;
+  max-width:700px;
+  margin:20px auto;
+}
+#previewImages img {
+  display:block;
+  width:100%;
+  margin:10px 0;
+  border:1px solid #ddd;
+}
+#previewImages a {
+  display:block;
+  color:#397bb8;
+  font-size:13px;
+  margin-bottom:12px;
+}
+footer {
+  text-align:center;
+  color:#9aa8b5;
+  font-size:11px;
+  padding:20px 0;
+}
+@media(min-width:700px) {
+  body { max-width:900px; margin:auto; }
+  #cards { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>アイカツ！アンコール</h1>
+  <div class="subtitle">カード コンプチェッカー</div>
+</header>
+
+<section class="panel">
+  <div class="row">
+    <button class="primary" onclick="loginGoogle()">Googleログイン</button>
+    <button class="gray" onclick="logoutGoogle()">ログアウト</button>
+  </div>
+  <div id="loginStatus">ログイン状態を確認しています</div>
+  <div class="small">ログインすると所持・求・譲の情報をクラウドに保存できます。</div>
+</section>
+
+<section class="panel">
+  <div class="row">
+    <select id="setSelect" onchange="changeSet(this.value)">
+      <option value="all">すべて</option>
+      <option value="e1">1弾</option>
+      <option value="e2">2弾</option>
+      <option value="e3">3弾</option>
+      <option value="e4">4弾</option>
+      <option value="e5">5弾</option>
+      <option value="e6">6弾</option>
+      <option value="promo">プロモーション</option>
+    </select>
+    <button class="gray fixed" onclick="reloadSheet()">カード情報更新</button>
+  </div>
+  <div class="progressOuter"><div id="progressBar"></div></div>
+  <div id="progressText">0 / 0 枚 所持</div>
+</section>
+
+<section class="panel">
+  <div id="topActions">
+    <button class="pink" onclick="makeList('want')">求リストの画像化</button>
+    <button class="primary" onclick="makeList('trade')">譲リストの画像化</button>
+  </div>
+</section>
+
+<section class="panel">
+  <input id="searchBox" type="search" placeholder="カード番号・カード名を検索" oninput="render()">
+  <div style="height:9px"></div>
+  <div id="filters">
+    <button class="active" data-filter="all" onclick="setFilter('all')">すべて</button>
+    <button data-filter="have" onclick="setFilter('have')">所持</button>
+    <button data-filter="none" onclick="setFilter('none')">未所持</button>
+    <button data-filter="want" onclick="setFilter('want')">求</button>
+    <button data-filter="trade" onclick="setFilter('trade')">譲</button>
+  </div>
+</section>
+
+<div id="message">カード情報を読み込んでいます…</div>
+<main id="cards"></main>
+
+<section class="panel" style="margin-top:14px">
+  <div id="topActions">
+    <button class="pink" onclick="makeList('want')">求リストの画像化</button>
+    <button class="primary" onclick="makeList('trade')">譲リストの画像化</button>
+  </div>
+</section>
+
+<footer>アイカツ！アンコール コンプチェッカー</footer>
+
+<div id="listPreview">
+  <div class="previewBox">
+    <h3 id="previewTitle">画像リスト</h3>
+    <div id="previewImages"></div>
+    <div class="row">
+      <button class="primary" onclick="closePreview()">閉じる</button>
+    </div>
+    <p class="small">画像を長押しして「写真に保存」することもできます。</p>
+  </div>
+</div>
+
+<script>
+/* スプレッドシートの公開CSV */
+const CSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vTFfkMdJchJ3HBmOdF-Ai6IzhmbJiMHIU6naC10iZIc0BXYmGltmyhzy41milF8JG570C1TAPbszRes/pub?output=csv";
+
+/* 新しい保存領域。古いデータは読み込みません */
+const STORAGE_PREFIX = "aikatsu-encore-new-v1-";
+const SET_NAMES = {
+  e1:"1弾", e2:"2弾", e3:"3弾", e4:"4弾",
+  e5:"5弾", e6:"6弾", promo:"プロモーション"
+};
+
+let allCards = [];
+let currentSet = "all";
+let currentFilter = "all";
+let cloudUser = null;
+let cloudReady = false;
+let cloudTimer = null;
+
+function storageKey(setKey) {
+  return STORAGE_PREFIX + setKey;
+}
+function readData(setKey) {
+  try {
+    return JSON.parse(localStorage.getItem(storageKey(setKey)) || "{}");
+  } catch(e) {
+    return {};
+  }
+}
+function saveData(setKey, data) {
+  localStorage.setItem(storageKey(setKey), JSON.stringify(data));
+}
+function getState(card) {
+  const data = readData(card.setKey);
+  return data[card.id] || {type:"none", qty:0, want:false, trade:0};
+}
+function setState(card, newState) {
+  const data = readData(card.setKey);
+  data[card.id] = newState;
+  saveData(card.setKey, data);
+  render();
+  scheduleCloudSave();
+}
+function setCardType(card, type) {
+  const s = getState(card);
+  s.type = type;
+  if(type !== "have") s.qty = 0;
+  setState(card, s);
+}
+function changeTrade(card, amount) {
+  const s = getState(card);
+  s.trade = Math.max(0, (Number(s.trade)||0) + amount);
+  setState(card, s);
+}
+function toggleWant(card) {
+  const s = getState(card);
+  s.want = !s.want;
+  setState(card, s);
+}
+
+/* CSVをカンマ・引用符対応で読み込む */
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, "");
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  for(let i=0;i<text.length;i++) {
+    const ch = text[i];
+    if(ch === '"') {
+      if(quoted && text[i+1] === '"') {
+        cell += '"';
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if(ch === "," && !quoted) {
+      row.push(cell); cell = "";
+    } else if((ch === "\n" || ch === "\r") && !quoted) {
+      if(ch === "\r" && text[i+1] === "\n") i++;
+      row.push(cell);
+      if(row.some(v => v.trim() !== "")) rows.push(row);
+      row = []; cell = "";
+    } else {
+      cell += ch;
+    }
+  }
+  row.push(cell);
+  if(row.some(v => v.trim() !== "")) rows.push(row);
+  return rows;
+}
+
+function identifySet(setValue, id) {
+  const v = String(setValue || "").trim().replace(/\s/g,"");
+  const cardId = String(id || "").trim().toUpperCase();
+
+  if(/^000/.test(v) || /プロモ|PROMO/i.test(v) || cardId.startsWith("EP-")) {
+    return "promo";
+  }
+  const numbered = v.match(/^00([1-6])/) || v.match(/^([1-6])(?:弾|だん)/);
+  if(numbered) return "e" + numbered[1];
+
+  const idMatch = cardId.match(/^E([1-6])-/);
+  if(idMatch) return "e" + idMatch[1];
+
+  return null;
+}
+
+async function reloadSheet() {
+  const message = document.getElementById("message");
+  message.textContent = "カード情報を読み込んでいます…";
+  try {
+    const response = await fetch(CSV_URL + "&_=" + Date.now());
+    if(!response.ok) throw new Error("CSVを取得できませんでした");
+    const csv = await response.text();
+    const rows = parseCSV(csv);
+    if(rows.length < 2) throw new Error("シートにカード情報がありません");
+
+    const headers = rows[0].map(h => h.trim());
+    const idIndex = headers.indexOf("カード番号");
+    const nameIndex = headers.indexOf("カード名");
+    const imageIndex = headers.indexOf("画像URL");
+    const setIndex = headers.indexOf("弾");
+
+    if([idIndex,nameIndex,imageIndex,setIndex].some(i => i < 0)) {
+      throw new Error("見出しは「カード番号・カード名・画像URL・弾」にしてください");
+    }
+
+    const loaded = [];
+    for(const row of rows.slice(1)) {
+      const id = (row[idIndex] || "").trim();
+      const name = (row[nameIndex] || "").trim();
+      const image = (row[imageIndex] || "").trim();
+      const setKey = identifySet(row[setIndex], id);
+      if(!id || !setKey) continue;
+      loaded.push({id,name,image,setKey});
+    }
+    allCards = loaded;
+    message.textContent = loaded.length
+      ? loaded.length + "枚のカードを読み込みました"
+      : "カードが見つかりません。弾の列を確認してください。";
+    render();
+  } catch(error) {
+    console.error(error);
+    message.textContent = "読み込みエラー：" + error.message;
+  }
+}
+
+function changeSet(value) {
+  currentSet = value;
+  render();
+}
+function setFilter(value) {
+  currentFilter = value;
+  document.querySelectorAll("#filters button").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.filter === value);
+  });
+  render();
+}
+function getVisibleCards() {
+  const keyword = document.getElementById("searchBox").value.trim().toLowerCase();
+  return allCards.filter(card => {
+    if(currentSet !== "all" && card.setKey !== currentSet) return false;
+    if(keyword && !(card.id + " " + card.name).toLowerCase().includes(keyword)) return false;
+    const s = getState(card);
+    if(currentFilter === "have" && s.type !== "have") return false;
+    if(currentFilter === "none" && s.type === "have") return false;
+    if(currentFilter === "want" && !s.want) return false;
+    if(currentFilter === "trade" && !(Number(s.trade)>0)) return false;
+    return true;
+  });
+}
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+function render() {
+  const container = document.getElementById("cards");
+  const visible = getVisibleCards();
+  container.innerHTML = "";
+
+  if(!visible.length) {
+    container.innerHTML = '<div class="panel">表示できるカードがありません。</div>';
+  } else {
+    visible.forEach(card => {
+      const s = getState(card);
+      const owned = s.type === "have";
+      const el = document.createElement("article");
+      el.className = "card" + (owned ? " owned" : "");
+
+      const imageHTML = card.image
+        ? '<img loading="lazy" src="' + escapeHTML(card.image) + '" alt="' + escapeHTML(card.name) + '">'
+        : '<div class="placeholder">画像準備中</div>';
+
+      el.innerHTML = `
+        <div class="cardImage">${imageHTML}</div>
+        <div class="cardNumber">${escapeHTML(card.id)}</div>
+        <div class="cardName">${escapeHTML(card.name)}</div>
+        <div class="stateButtons">
+          <button data-type="have" class="${s.type==="have"?"selected":""}">所持</button>
+          <button data-type="none" class="${s.type==="none"?"selected":""}">未所持</button>
+          <button data-type="want" class="${s.want?"selected":""}">求</button>
+        </div>
+        <div class="cardFooter">
+          <span class="qty">譲 ${Number(s.trade)||0}枚</span>
+          <button class="gray" data-trade="-1">−</button>
+          <button class="primary" data-trade="1">＋</button>
+        </div>
+      `;
+
+      el.querySelectorAll("[data-type]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if(btn.dataset.type === "want") toggleWant(card);
+          else setCardType(card, btn.dataset.type);
+        });
+      });
+      el.querySelectorAll("[data-trade]").forEach(btn => {
+        btn.addEventListener("click", () => changeTrade(card, Number(btn.dataset.trade)));
+      });
+      container.appendChild(el);
+    });
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  const cards = currentSet === "all"
+    ? allCards
+    : allCards.filter(c => c.setKey === currentSet);
+  const owned = cards.filter(c => getState(c).type === "have").length;
+  const total = cards.length;
+  document.getElementById("progressBar").style.width =
+    (total ? owned/total*100 : 0) + "%";
+  document.getElementById("progressText").textContent =
+    owned + " / " + total + " 枚 所持";
+}
+
+/* 画像リスト作成：8列×5行 */
+async function makeList(type) {
+  const cards = allCards.filter(card => {
+    if(currentSet !== "all" && card.setKey !== currentSet) return false;
+    const s = getState(card);
+    return type === "want" ? s.want : Number(s.trade) > 0;
+  });
+
+  if(!cards.length) {
+    alert(type === "want" ? "求カードがありません" : "譲カードがありません");
+    return;
+  }
+
+  const title = type === "want" ? "求リスト" : "譲リスト";
+  document.getElementById("previewTitle").textContent =
+    "アイカツ！アンコール " + title;
+
+  const preview = document.getElementById("previewImages");
+  preview.innerHTML = "";
+  document.getElementById("listPreview").style.display = "block";
+
+  const pages = [];
+  for(let i=0;i<cards.length;i+=40) pages.push(cards.slice(i,i+40));
+
+  for(let page=0;page<pages.length;page++) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1600;
+    canvas.height = 1100;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "#397bb8";
+    ctx.font = "bold 42px sans-serif";
+    ctx.fillText("アイカツ！アンコール",45,55);
+    ctx.fillStyle = "#a64e79";
+    ctx.font = "bold 34px sans-serif";
+    ctx.fillText(title,45,105);
+
+    const cellW = 190, cellH = 190;
+    for(let i=0;i<pages[page].length;i++) {
+      const card = pages[page][i];
+      const x = 35 + (i%8)*cellW;
+      const y = 135 + Math.floor(i/8)*cellH;
+      ctx.fillStyle = "#f4f8fc";
+      ctx.fillRect(x,y,170,178);
+
+      const img = await loadCanvasImage(card.image);
+      if(img) {
+        const scale = Math.min(150/img.width,125/img.height);
+        const w = img.width*scale, h = img.height*scale;
+        ctx.drawImage(img,x+(170-w)/2,y+5+(125-h)/2,w,h);
+      } else {
+        ctx.fillStyle = "#9aa9b5";
+        ctx.font = "16px sans-serif";
+        ctx.fillText("画像準備中",x+35,y+70);
+      }
+
+      ctx.fillStyle = "#43546a";
+      ctx.font = "bold 17px sans-serif";
+      ctx.fillText(card.id,x+7,y+148);
+
+      ctx.font = "14px sans-serif";
+      ctx.fillText(card.name.slice(0,13),x+7,y+169);
+
+      if(type === "trade") {
+        const qty = Number(getState(card).trade)||0;
+        ctx.fillStyle = "#3985cf";
+        ctx.beginPath();
+        ctx.arc(x+151,y+18,17,0,Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 18px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(String(qty),x+151,y+24);
+        ctx.textAlign = "left";
+      }
+    }
+
+    const imgURL = canvas.toDataURL("image/png");
+    const imgElement = document.createElement("img");
+    imgElement.src = imgURL;
+    imgElement.alt = title + " " + (page+1) + "ページ";
+    preview.appendChild(imgElement);
+
+    const link = document.createElement("a");
+    link.href = imgURL;
+    link.download = "アイカツ！アンコール_" + title + "_" + (page+1) + ".png";
+    link.textContent = "画像 " + (page+1) + " を保存";
+    preview.appendChild(link);
+  }
+}
+function loadCanvasImage(url) {
+  return new Promise(resolve => {
+    if(!url) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+function closePreview() {
+  document.getElementById("listPreview").style.display = "none";
+}
+
+/* Firestoreへ保存するデータ */
+function collectAllData() {
+  const result = {};
+  Object.keys(SET_NAMES).forEach(key => result[key] = readData(key));
+  return result;
+}
+function applyAllData(data) {
+  if(!data) return;
+  Object.keys(SET_NAMES).forEach(key => {
+    if(data[key] && typeof data[key] === "object") saveData(key,data[key]);
+  });
+  render();
+}
+function scheduleCloudSave() {
+  if(!cloudUser || !cloudReady) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(() => {
+    if(window.saveEncoreCloud) window.saveEncoreCloud(collectAllData());
+  },1000);
+}
+
+reloadSheet();
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+/* Firebase設定 */
+const firebaseConfig = {
+  apiKey: "AIzaSyA_W7U6GIdGZM72u5UyIT6dRg4_MndgfQ",
+  authDomain: "aikatsu-encore-comp-checker.firebaseapp.com",
+  projectId: "aikatsu-encore-comp-checker",
+  storageBucket: "aikatsu-encore-comp-checker.firebasestorage.app",
+  messagingSenderId: "986414492613",
+  appId: "1:986414492613:web:79179c456369d803e4f9ac"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+function setLoginText(text) {
+  document.getElementById("loginStatus").textContent = text;
+}
+
+window.loginGoogle = async function() {
+  try {
+    await signInWithPopup(auth,provider);
+  } catch(error) {
+    console.error(error);
+    setLoginText("ログインできませんでした：" + error.message);
+  }
+};
+
+window.logoutGoogle = async function() {
+  try {
+    await signOut(auth);
+  } catch(error) {
+    setLoginText("ログアウトできませんでした");
+  }
+};
+
+window.saveEncoreCloud = async function(data) {
+  if(!auth.currentUser) return;
+  try {
+    const ref = doc(db,"users",auth.currentUser.uid);
+    await setDoc(ref,{
+      encoreFresh:data,
+      encoreFreshUpdatedAt:serverTimestamp()
+    },{merge:true});
+    setLoginText("Googleログイン中・クラウド保存済み");
+  } catch(error) {
+    console.error(error);
+    setLoginText("クラウド保存エラー：" + error.message);
+  }
+};
+
+onAuthStateChanged(auth,async user => {
+  window.cloudUser = user;
+  if(!user) {
+    window.cloudReady = false;
+    setLoginText("Googleログインしていません（端末内に保存）");
+    return;
+  }
+
+  setLoginText("ログイン中：" + (user.email || user.uid));
+  try {
+    const ref = doc(db,"users",user.uid);
+    const snap = await getDoc(ref);
+    if(snap.exists()) {
+      const data = snap.data().encoreFresh;
+      if(data) window.applyAllData(data);
+    }
+    window.cloudReady = true;
+    setLoginText("Googleログイン中・クラウド同期可能");
+  } catch(error) {
+    console.error(error);
+    setLoginText("クラウド読み込みエラー：" + error.message);
+  }
+});
+</script>
+</body>
+</html>
