@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -37,9 +36,7 @@ h1 { font-size:22px; margin:0 0 6px; color:#397bb8; }
   margin-bottom:12px;
   box-shadow:0 2px 8px #9bb4c522;
 }
-button,select,input {
-  font:inherit;
-}
+button,select,input { font:inherit; }
 button {
   border:0;
   border-radius:10px;
@@ -277,13 +274,6 @@ footer {
 <div id="message">カード情報を読み込んでいます…</div>
 <main id="cards"></main>
 
-<section class="panel" style="margin-top:14px">
-  <div id="topActions">
-    <button class="pink" onclick="makeList('want')">求リストの画像化</button>
-    <button class="primary" onclick="makeList('trade')">譲リストの画像化</button>
-  </div>
-</section>
-
 <footer>アイカツ！アンコール コンプチェッカー</footer>
 
 <div id="listPreview">
@@ -302,7 +292,7 @@ footer {
 const CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFfkMdJchJ3HBmOdF-Ai6IzhmbJiMHIU6naC10iZIc0BXYmGltmyhzy41milF8JG570C1TAPbszRes/pub?output=csv";
 
-/* 新しい保存領域。古いデータは読み込みません */
+/* 新しい保存領域 */
 const STORAGE_PREFIX = "aikatsu-encore-new-v1-";
 const SET_NAMES = {
   e1:"1弾", e2:"2弾", e3:"3弾", e4:"4弾",
@@ -312,8 +302,6 @@ const SET_NAMES = {
 let allCards = [];
 let currentSet = "all";
 let currentFilter = "all";
-let cloudUser = null;
-let cloudReady = false;
 let cloudTimer = null;
 
 function storageKey(setKey) {
@@ -357,11 +345,12 @@ function toggleWant(card) {
   setState(card, s);
 }
 
-/* CSVをカンマ・引用符対応で読み込む */
+/* CSV読み込み */
 function parseCSV(text) {
   text = text.replace(/^\uFEFF/, "");
   const rows = [];
   let row = [], cell = "", quoted = false;
+
   for(let i=0;i<text.length;i++) {
     const ch = text[i];
     if(ch === '"') {
@@ -372,16 +361,19 @@ function parseCSV(text) {
         quoted = !quoted;
       }
     } else if(ch === "," && !quoted) {
-      row.push(cell); cell = "";
+      row.push(cell);
+      cell = "";
     } else if((ch === "\n" || ch === "\r") && !quoted) {
       if(ch === "\r" && text[i+1] === "\n") i++;
       row.push(cell);
       if(row.some(v => v.trim() !== "")) rows.push(row);
-      row = []; cell = "";
+      row = [];
+      cell = "";
     } else {
       cell += ch;
     }
   }
+
   row.push(cell);
   if(row.some(v => v.trim() !== "")) rows.push(row);
   return rows;
@@ -394,6 +386,7 @@ function identifySet(setValue, id) {
   if(/^000/.test(v) || /プロモ|PROMO/i.test(v) || cardId.startsWith("EP-")) {
     return "promo";
   }
+
   const numbered = v.match(/^00([1-6])/) || v.match(/^([1-6])(?:弾|だん)/);
   if(numbered) return "e" + numbered[1];
 
@@ -406,9 +399,11 @@ function identifySet(setValue, id) {
 async function reloadSheet() {
   const message = document.getElementById("message");
   message.textContent = "カード情報を読み込んでいます…";
+
   try {
     const response = await fetch(CSV_URL + "&_=" + Date.now());
     if(!response.ok) throw new Error("CSVを取得できませんでした");
+
     const csv = await response.text();
     const rows = parseCSV(csv);
     if(rows.length < 2) throw new Error("シートにカード情報がありません");
@@ -429,13 +424,16 @@ async function reloadSheet() {
       const name = (row[nameIndex] || "").trim();
       const image = (row[imageIndex] || "").trim();
       const setKey = identifySet(row[setIndex], id);
+
       if(!id || !setKey) continue;
       loaded.push({id,name,image,setKey});
     }
+
     allCards = loaded;
     message.textContent = loaded.length
       ? loaded.length + "枚のカードを読み込みました"
       : "カードが見つかりません。弾の列を確認してください。";
+
     render();
   } catch(error) {
     console.error(error);
@@ -456,22 +454,30 @@ function setFilter(value) {
 }
 function getVisibleCards() {
   const keyword = document.getElementById("searchBox").value.trim().toLowerCase();
+
   return allCards.filter(card => {
     if(currentSet !== "all" && card.setKey !== currentSet) return false;
     if(keyword && !(card.id + " " + card.name).toLowerCase().includes(keyword)) return false;
+
     const s = getState(card);
     if(currentFilter === "have" && s.type !== "have") return false;
     if(currentFilter === "none" && s.type === "have") return false;
     if(currentFilter === "want" && !s.want) return false;
     if(currentFilter === "trade" && !(Number(s.trade)>0)) return false;
+
     return true;
   });
 }
 function escapeHTML(value) {
   return String(value).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
   })[c]);
 }
+
 function render() {
   const container = document.getElementById("cards");
   const visible = getVisibleCards();
@@ -512,12 +518,17 @@ function render() {
           else setCardType(card, btn.dataset.type);
         });
       });
+
       el.querySelectorAll("[data-trade]").forEach(btn => {
-        btn.addEventListener("click", () => changeTrade(card, Number(btn.dataset.trade)));
+        btn.addEventListener("click", () => {
+          changeTrade(card, Number(btn.dataset.trade));
+        });
       });
+
       container.appendChild(el);
     });
   }
+
   updateProgress();
 }
 
@@ -525,18 +536,46 @@ function updateProgress() {
   const cards = currentSet === "all"
     ? allCards
     : allCards.filter(c => c.setKey === currentSet);
+
   const owned = cards.filter(c => getState(c).type === "have").length;
   const total = cards.length;
+
   document.getElementById("progressBar").style.width =
     (total ? owned/total*100 : 0) + "%";
+
   document.getElementById("progressText").textContent =
     owned + " / " + total + " 枚 所持";
 }
 
-/* 画像リスト作成：8列×5行 */
+/* 画像読み込み */
+function loadCanvasImage(url) {
+  return new Promise(resolve => {
+    if(!url) return resolve(null);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => resolve(img);
+
+    img.onerror = () => {
+      const proxy = new Image();
+      proxy.crossOrigin = "anonymous";
+
+      proxy.onload = () => resolve(proxy);
+      proxy.onerror = () => resolve(null);
+
+      proxy.src = "https://wsrv.nl/?url=" + encodeURIComponent(url);
+    };
+
+    img.src = url;
+  });
+}
+
+/* 求・譲リスト画像作成 */
 async function makeList(type) {
   const cards = allCards.filter(card => {
     if(currentSet !== "all" && card.setKey !== currentSet) return false;
+
     const s = getState(card);
     return type === "want" ? s.want : Number(s.trade) > 0;
   });
@@ -547,6 +586,7 @@ async function makeList(type) {
   }
 
   const title = type === "want" ? "求リスト" : "譲リスト";
+
   document.getElementById("previewTitle").textContent =
     "アイカツ！アンコール " + title;
 
@@ -555,12 +595,15 @@ async function makeList(type) {
   document.getElementById("listPreview").style.display = "block";
 
   const pages = [];
-  for(let i=0;i<cards.length;i+=40) pages.push(cards.slice(i,i+40));
+  for(let i=0;i<cards.length;i+=40) {
+    pages.push(cards.slice(i,i+40));
+  }
 
   for(let page=0;page<pages.length;page++) {
     const canvas = document.createElement("canvas");
     canvas.width = 1600;
     canvas.height = 1100;
+
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -568,23 +611,36 @@ async function makeList(type) {
     ctx.fillStyle = "#397bb8";
     ctx.font = "bold 42px sans-serif";
     ctx.fillText("アイカツ！アンコール",45,55);
+
     ctx.fillStyle = "#a64e79";
     ctx.font = "bold 34px sans-serif";
     ctx.fillText(title,45,105);
 
-    const cellW = 190, cellH = 190;
+    const cellW = 190;
+    const cellH = 190;
+
     for(let i=0;i<pages[page].length;i++) {
       const card = pages[page][i];
       const x = 35 + (i%8)*cellW;
       const y = 135 + Math.floor(i/8)*cellH;
+
       ctx.fillStyle = "#f4f8fc";
       ctx.fillRect(x,y,170,178);
 
       const img = await loadCanvasImage(card.image);
+
       if(img) {
         const scale = Math.min(150/img.width,125/img.height);
-        const w = img.width*scale, h = img.height*scale;
-        ctx.drawImage(img,x+(170-w)/2,y+5+(125-h)/2,w,h);
+        const w = img.width*scale;
+        const h = img.height*scale;
+
+        ctx.drawImage(
+          img,
+          x+(170-w)/2,
+          y+5+(125-h)/2,
+          w,
+          h
+        );
       } else {
         ctx.fillStyle = "#9aa9b5";
         ctx.font = "16px sans-serif";
@@ -600,10 +656,12 @@ async function makeList(type) {
 
       if(type === "trade") {
         const qty = Number(getState(card).trade)||0;
+
         ctx.fillStyle = "#3985cf";
         ctx.beginPath();
         ctx.arc(x+151,y+18,17,0,Math.PI*2);
         ctx.fill();
+
         ctx.fillStyle = "#fff";
         ctx.font = "bold 18px sans-serif";
         ctx.textAlign = "center";
@@ -612,7 +670,16 @@ async function makeList(type) {
       }
     }
 
-    const imgURL = canvas.toDataURL("image/png");
+    let imgURL;
+
+    try {
+      imgURL = canvas.toDataURL("image/png");
+    } catch(error) {
+      console.error(error);
+      alert("画像を保存できませんでした。画像サービス側の制限の可能性があります。");
+      return;
+    }
+
     const imgElement = document.createElement("img");
     imgElement.src = imgURL;
     imgElement.alt = title + " " + (page+1) + "ページ";
@@ -625,26 +692,7 @@ async function makeList(type) {
     preview.appendChild(link);
   }
 }
-function loadCanvasImage(url) {
-  return new Promise(resolve => {
-    if(!url) return resolve(null);
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-
-    img.onload = () => resolve(img);
-    img.onerror = () => {
-      const proxy = new Image();
-      proxy.crossOrigin = "anonymous";
-      proxy.onload = () => resolve(proxy);
-      proxy.onerror = () => resolve(null);
-
-      proxy.src = "https://wsrv.nl/?url=" + encodeURIComponent(url);
-    };
-
-    img.src = url;
-  });
-}
 function closePreview() {
   document.getElementById("listPreview").style.display = "none";
 }
@@ -652,23 +700,37 @@ function closePreview() {
 /* Firestoreへ保存するデータ */
 function collectAllData() {
   const result = {};
-  Object.keys(SET_NAMES).forEach(key => result[key] = readData(key));
+  Object.keys(SET_NAMES).forEach(key => {
+    result[key] = readData(key);
+  });
   return result;
 }
+
 function applyAllData(data) {
   if(!data) return;
+
   Object.keys(SET_NAMES).forEach(key => {
-    if(data[key] && typeof data[key] === "object") saveData(key,data[key]);
+    if(data[key] && typeof data[key] === "object") {
+      saveData(key,data[key]);
+    }
   });
+
   render();
 }
+
 function scheduleCloudSave() {
-  if(!cloudUser || !cloudReady) return;
+  if(!window.cloudUser || !window.cloudReady) return;
+
   clearTimeout(cloudTimer);
+
   cloudTimer = setTimeout(() => {
-    if(window.saveEncoreCloud) window.saveEncoreCloud(collectAllData());
+    if(window.saveEncoreCloud) {
+      window.saveEncoreCloud(collectAllData());
+    }
   },1000);
 }
+
+window.applyAllData = applyAllData;
 
 reloadSheet();
 </script>
@@ -676,11 +738,18 @@ reloadSheet();
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup,
-  onAuthStateChanged, signOut
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, serverTimestamp
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 /* Firebase設定 */
@@ -721,12 +790,15 @@ window.logoutGoogle = async function() {
 
 window.saveEncoreCloud = async function(data) {
   if(!auth.currentUser) return;
+
   try {
     const ref = doc(db,"users",auth.currentUser.uid);
+
     await setDoc(ref,{
       encoreFresh:data,
       encoreFreshUpdatedAt:serverTimestamp()
     },{merge:true});
+
     setLoginText("Googleログイン中・クラウド保存済み");
   } catch(error) {
     console.error(error);
@@ -736,6 +808,7 @@ window.saveEncoreCloud = async function(data) {
 
 onAuthStateChanged(auth,async user => {
   window.cloudUser = user;
+
   if(!user) {
     window.cloudReady = false;
     setLoginText("Googleログインしていません（端末内に保存）");
@@ -743,13 +816,16 @@ onAuthStateChanged(auth,async user => {
   }
 
   setLoginText("ログイン中：" + (user.email || user.uid));
+
   try {
     const ref = doc(db,"users",user.uid);
     const snap = await getDoc(ref);
+
     if(snap.exists()) {
       const data = snap.data().encoreFresh;
       if(data) window.applyAllData(data);
     }
+
     window.cloudReady = true;
     setLoginText("Googleログイン中・クラウド同期可能");
   } catch(error) {
