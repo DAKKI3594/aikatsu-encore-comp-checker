@@ -389,13 +389,24 @@ async function syncFromCloud(){
   }
 }
 
+let googleLoginInProgress = false;
+
 window.loginWithGoogle=async function(){
+  if(googleLoginInProgress) return;
+  googleLoginInProgress = true;
   try{
-    setAuthUI("Googleログイン中…","Googleのログイン画面へ移動します…");
-    await signInWithPopup(auth,googleProvider);
+    setAuthUI("Googleログイン中…","Googleのログイン画面を確認しています…");
+    const result = await signInWithPopup(auth,googleProvider);
+    window.firebaseUser = result.user;
+    googleLoginInProgress = false;
+    setAuthUI("Google: "+(result.user.displayName||result.user.email||"ログイン中"),"ログイン成功。クラウドデータを確認しています…","ok");
+    await syncFromCloud();
   }catch(err){
-    console.error(err);
-    setAuthUI("Googleログインしていません","ログインできませんでした："+(err.code||err.message),"error");
+    googleLoginInProgress = false;
+    console.error("Google login error:",err);
+    const code = err && err.code ? err.code : "unknown";
+    const message = err && err.message ? err.message : String(err);
+    setAuthUI("Googleログインしていません","ログインエラー ["+code+"] "+message,"error");
   }
 };
 
@@ -409,8 +420,13 @@ window.logoutGoogle=async function(){
 
 onAuthStateChanged(auth,user=>{
   window.firebaseUser=user;
-  if(user){ syncFromCloud(); }
-  else { window.cloudSyncReady=false; setAuthUI("Googleログインしていません","端末内に自動保存されています"); }
+  if(user){
+    googleLoginInProgress = false;
+    syncFromCloud();
+  }else if(!googleLoginInProgress){
+    window.cloudSyncReady=false;
+    setAuthUI("Googleログインしていません","端末内に自動保存されています");
+  }
 });
 </script>
 
