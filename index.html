@@ -287,6 +287,7 @@ footer {
 <div id="listPreview">
   <div class="previewBox">
     <h3 id="previewTitle">画像リスト</h3>
+    <p id="imageProgress" class="small"></p>
     <div id="previewImages"></div>
     <div class="row">
       <button class="primary" onclick="closePreview()">閉じる</button>
@@ -552,26 +553,51 @@ function updateProgress() {
     owned + " / " + total + " 枚 所持";
 }
 
+/* 画像を読み込む。元画像が失敗したら画像プロキシも試す */
 function loadCanvasImage(url) {
-  return new Promise(resolve => {
+  return new Promise(async resolve => {
     if(!url) return resolve(null);
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
+    function tryImage(src) {
+      return new Promise(done => {
+        const img = new Image();
+        let finished = false;
 
-    img.onload = () => resolve(img);
+        const timer = setTimeout(() => {
+          if(finished) return;
+          finished = true;
+          done(null);
+        },10000);
 
-    img.onerror = () => {
-      const proxy = new Image();
-      proxy.crossOrigin = "anonymous";
+        img.crossOrigin = "anonymous";
 
-      proxy.onload = () => resolve(proxy);
-      proxy.onerror = () => resolve(null);
+        img.onload = () => {
+          if(finished) return;
+          finished = true;
+          clearTimeout(timer);
+          done(img);
+        };
 
-      proxy.src = "https://wsrv.nl/?url=" + encodeURIComponent(url);
-    };
+        img.onerror = () => {
+          if(finished) return;
+          finished = true;
+          clearTimeout(timer);
+          done(null);
+        };
 
-    img.src = url;
+        img.src = src;
+      });
+    }
+
+    let result = await tryImage(url);
+
+    if(!result) {
+      const proxyURL =
+        "https://wsrv.nl/?url=" + encodeURIComponent(url);
+      result = await tryImage(proxyURL);
+    }
+
+    resolve(result);
   });
 }
 
@@ -584,8 +610,6 @@ async function makeList(type) {
 
     if(type === "want") return s.want;
     if(type === "trade") return Number(s.trade) > 0;
-
-    // 未所持に設定されているカードだけを対象にする
     if(type === "none") return s.type === "none";
 
     return false;
@@ -606,7 +630,10 @@ async function makeList(type) {
     "アイカツ！アンコール " + title;
 
   const preview = document.getElementById("previewImages");
+  const progress = document.getElementById("imageProgress");
+
   preview.innerHTML = "";
+  progress.textContent = "画像を準備しています…";
   document.getElementById("listPreview").style.display = "block";
 
   const pages = [];
@@ -615,6 +642,24 @@ async function makeList(type) {
   }
 
   for(let page=0;page<pages.length;page++) {
+    const pageCards = pages[page];
+
+    progress.textContent =
+      "画像 " + (page+1) + " / " + pages.length + " を作成中…";
+
+    /* 画像を8枚ずつ読み込んで負荷を抑える */
+    const loadedImages = [];
+
+    for(let start=0;start<pageCards.length;start+=8) {
+      const batch = pageCards.slice(start,start+8);
+
+      const results = await Promise.all(
+        batch.map(card => loadCanvasImage(card.image))
+      );
+
+      loadedImages.push(...results);
+    }
+
     const canvas = document.createElement("canvas");
     canvas.width = 1600;
     canvas.height = 1100;
@@ -634,15 +679,15 @@ async function makeList(type) {
     const cellW = 190;
     const cellH = 190;
 
-    for(let i=0;i<pages[page].length;i++) {
-      const card = pages[page][i];
+    for(let i=0;i<pageCards.length;i++) {
+      const card = pageCards[i];
       const x = 35 + (i%8)*cellW;
       const y = 135 + Math.floor(i/8)*cellH;
 
       ctx.fillStyle = "#f4f8fc";
       ctx.fillRect(x,y,170,178);
 
-      const img = await loadCanvasImage(card.image);
+      const img = loadedImages[i];
 
       if(img) {
         const scale = Math.min(150/img.width,125/img.height);
@@ -691,8 +736,9 @@ async function makeList(type) {
       imgURL = canvas.toDataURL("image/png");
     } catch(error) {
       console.error(error);
-      alert("画像を保存できませんでした。画像サービス側の制限の可能性があります。");
-      return;
+      progress.textContent =
+        "画像 " + (page+1) + " の保存用データを作れませんでした。";
+      continue;
     }
 
     const imgElement = document.createElement("img");
@@ -702,10 +748,20 @@ async function makeList(type) {
 
     const link = document.createElement("a");
     link.href = imgURL;
-    link.download = "アイカツ！アンコール_" + title + "_" + (page+1) + ".png";
-    link.textContent = "画像 " + (page+1) + " を保存";
+    link.download =
+      "アイカツ！アンコール_" + title + "_" + (page+1) + ".png";
+
+    link.textContent =
+      "画像 " + (page+1) + " を保存（" + pageCards.length + "枚）";
+
     preview.appendChild(link);
+
+    progress.textContent =
+      "画像 " + (page+1) + " / " + pages.length + " 完成！";
   }
+
+  progress.textContent =
+    "全 " + pages.length + " 枚の画像が完成しました！";
 }
 
 function closePreview() {
