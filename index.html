@@ -91,8 +91,12 @@ input[type="search"] { width:100%; }
 #progressText { font-size:12px; text-align:right; }
 #topActions {
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(3,minmax(0,1fr));
   gap:8px;
+}
+#topActions button {
+  padding:10px 4px;
+  font-size:12px;
 }
 #filters {
   display:flex;
@@ -212,6 +216,9 @@ footer {
   font-size:11px;
   padding:20px 0;
 }
+@media(max-width:380px) {
+  #topActions { grid-template-columns:1fr; }
+}
 @media(min-width:700px) {
   body { max-width:900px; margin:auto; }
   #cards { grid-template-columns:repeat(4,minmax(0,1fr)); }
@@ -256,6 +263,7 @@ footer {
   <div id="topActions">
     <button class="pink" onclick="makeList('want')">求リストの画像化</button>
     <button class="primary" onclick="makeList('trade')">譲リストの画像化</button>
+    <button class="gray" onclick="makeList('none')">未所持一覧の画像化</button>
   </div>
 </section>
 
@@ -571,21 +579,30 @@ function loadCanvasImage(url) {
   });
 }
 
-/* 求・譲リスト画像作成 */
+/* 求・譲・未所持リスト画像作成 */
 async function makeList(type) {
   const cards = allCards.filter(card => {
     if(currentSet !== "all" && card.setKey !== currentSet) return false;
 
     const s = getState(card);
-    return type === "want" ? s.want : Number(s.trade) > 0;
+
+    if(type === "want") return s.want;
+    if(type === "trade") return Number(s.trade) > 0;
+    if(type === "none") return s.type !== "have";
+
+    return false;
   });
 
   if(!cards.length) {
-    alert(type === "want" ? "求カードがありません" : "譲カードがありません");
+    if(type === "want") alert("求カードがありません");
+    else if(type === "trade") alert("譲カードがありません");
+    else alert("未所持カードがありません");
     return;
   }
 
-  const title = type === "want" ? "求リスト" : "譲リスト";
+  let title = "未所持リスト";
+  if(type === "want") title = "求リスト";
+  if(type === "trade") title = "譲リスト";
 
   document.getElementById("previewTitle").textContent =
     "アイカツ！アンコール " + title;
